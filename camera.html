@@ -79,6 +79,12 @@ header.top{border-bottom:1px solid var(--line);background:var(--surface)}
 .mirror{position:absolute;inset:0;transform:scaleX(-1)}
 .mirror video,.mirror canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .mirror video{opacity:.88}
+/* Faux fullscreen. The Fullscreen API is unavailable on non-video elements in
+   iOS Safari, so a fixed-position layer is the mechanism that works everywhere;
+   the real API is requested too, purely for the chrome-hiding bonus. */
+.stage.fs{position:fixed;inset:0;z-index:9999;border-radius:0;aspect-ratio:auto;
+  width:100vw;height:100vh;height:100dvh;max-width:none;border:0}
+body.fslock{overflow:hidden}
 .stageover{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:16px}
 .otop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:rgba(5,17,21,.72);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(4px)}
@@ -206,13 +212,17 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
       <div class="stage">
         <div class="mirror">
           <video id="vid" playsinline muted></video>
+          <canvas id="bg" hidden></canvas>
           <canvas id="ov"></canvas>
         </div>
         <div class="stageover" id="over" hidden>
           <div class="otop">
-            <span style="display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+            <span style="display:flex;flex-direction:column;align-items:flex-start;gap:7px">
               <span class="tag on" id="exName">BODYWEIGHT SQUAT</span>
-              <button class="camflip" type="button" id="camFlip" hidden>Flip camera</button>
+              <span style="display:flex;gap:7px;flex-wrap:wrap">
+                <button class="camflip" type="button" id="camFlip" hidden>Flip camera</button>
+                <button class="camflip" type="button" id="fsBtn" hidden>Full screen</button>
+              </span>
             </span>
             <span class="repbox"><b id="repN">0</b><i id="repT">REPS</i></span>
           </div>
@@ -245,11 +255,24 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
         <div class="field">
           <label for="exSel">Movement</label>
           <select id="exSel">
-            <option value="squat">Bodyweight squat — knee flexion</option>
-            <option value="sitstand">Sit-to-stand — knee flexion</option>
-            <option value="pushup">Push-up — elbow flexion</option>
-            <option value="raise">Lateral raise — shoulder abduction</option>
+            <optgroup label="Lower body">
+              <option value="squat">Bodyweight squat</option>
+              <option value="sitstand">Sit-to-stand</option>
+              <option value="lunge">Reverse lunge</option>
+              <option value="bridge">Glute bridge</option>
+              <option value="kneeraise">Standing knee raise</option>
+            </optgroup>
+            <optgroup label="Upper body">
+              <option value="pushup">Push-up</option>
+              <option value="curl">Bicep curl</option>
+              <option value="press">Overhead press</option>
+              <option value="raise">Lateral raise</option>
+            </optgroup>
+            <optgroup label="Full body">
+              <option value="jack">Jumping jack</option>
+            </optgroup>
           </select>
+          <small id="exHint" style="display:block;font-size:11px;color:var(--ink-faint);margin-top:5px">Face the camera · knee flexion 170° → 95°</small>
         </div>
         <div class="act">
           <button id="resetBtn">Reset reps</button>
@@ -272,14 +295,29 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
       </div>
 
       <div class="pcard">
+        <h3>Camera view</h3>
+        <p>Blur modes are the ones to use when showing this to someone — your room stays unreadable and the tracking still works exactly the same.</p>
+        <div class="field">
+          <label for="viewSel">Mode</label>
+          <select id="viewSel">
+            <option value="normal" selected>Normal</option>
+            <option value="bgblur">Blur the background — you stay sharp</option>
+            <option value="blur">Blur everything</option>
+            <option value="hidden">Hide the camera — skeleton only</option>
+          </select>
+        </div>
+        <p class="note" style="margin-top:9px">Background blur uses the model's segmentation mask, which costs a few fps — watch the inference readout.</p>
+      </div>
+
+      <div class="pcard">
         <h3>Frame effects</h3>
         <p>Light cones from the device to each tracked joint. Colour follows the depth palette, so beams to near joints read cyan and far ones violet.</p>
         <div class="field">
           <label for="beamSel">Tracking beams</label>
           <select id="beamSel">
             <option value="off">Off</option>
-            <option value="setup" selected>Setup only — retire after first rep</option>
-            <option value="always">Always on</option>
+            <option value="setup">Setup only — retire after first rep</option>
+            <option value="always" selected>Always on</option>
           </select>
         </div>
         <div class="field">
@@ -290,7 +328,7 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
           <div><u>Draw cost / frame</u><b class="sm" id="tBeamMs">—</b></div>
           <div><u>Of a 33 ms budget</u><b class="sm" id="tBeamPct">—</b></div>
         </div>
-        <p class="note">Measured live on this machine. In the app this ships as a user setting, default off — see the blueprint.</p>
+        <p class="note">Measured live on this machine. Ships on by default, with this control exposed as a user setting.</p>
       </div>
 
       <div class="pcard">
@@ -514,15 +552,43 @@ const BONES=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],
 const DRAW_PTS=[0,11,12,13,14,15,16,23,24,25,26,27,28,31,32];
 
 /* ══════════ exercises ══════════ */
+/* Anchors are the angle at the START of a rep (`top`, progress 0) and at its PEAK
+   (`bottom`, progress 1). The progress formula is direction-agnostic, so a press
+   whose angle INCREASES through the rep just has top < bottom.
+   `unilateral: true` means one limb works at a time — progress takes whichever
+   side is working, and Symmetry is dropped from the score rather than punishing
+   a movement that is asymmetric by design. */
 const EX = {
-  squat:    {name:'BODYWEIGHT SQUAT', metricLabel:'Knee flexion',        metric:'knee',  top:170, bottom:95,
-             need:[11,12,23,24,25,26,27,28], valgusCheck:true,  cue:'Push your knees out over your toes'},
-  sitstand: {name:'SIT-TO-STAND',     metricLabel:'Knee flexion',        metric:'knee',  top:168, bottom:100,
-             need:[11,12,23,24,25,26,27,28], valgusCheck:true,  cue:'Drive through your heels, chest up'},
-  pushup:   {name:'PUSH-UP',          metricLabel:'Elbow flexion',       metric:'elbow', top:162, bottom:95,
-             need:[11,12,13,14,15,16,23,24], valgusCheck:false, cue:'Keep your hips in line with your shoulders'},
-  raise:    {name:'LATERAL RAISE',    metricLabel:'Shoulder abduction',  metric:'abd',   top:20,  bottom:85,
-             need:[11,12,13,14,23,24],       valgusCheck:false, cue:'Lead with your elbows, not your hands'}
+  squat:     {name:'BODYWEIGHT SQUAT',     metricLabel:'Knee flexion',       metric:'knee',  top:170, bottom:95,
+              need:[11,12,23,24,25,26,27,28], valgusCheck:true,  view:'Face the camera',
+              cue:'Push your knees out over your toes'},
+  sitstand:  {name:'SIT-TO-STAND',         metricLabel:'Knee flexion',       metric:'knee',  top:168, bottom:100,
+              need:[11,12,23,24,25,26,27,28], valgusCheck:true,  view:'Face the camera',
+              cue:'Drive through your heels, chest up'},
+  lunge:     {name:'REVERSE LUNGE',        metricLabel:'Front knee flexion', metric:'knee',  top:170, bottom:95,
+              need:[23,24,25,26,27,28],       unilateral:true,   view:'Turn side-on',
+              cue:'Keep your front knee over your ankle'},
+  pushup:    {name:'PUSH-UP',              metricLabel:'Elbow flexion',      metric:'elbow', top:162, bottom:95,
+              need:[11,12,13,14,15,16,23,24], view:'Turn side-on',
+              cue:'Keep your hips in line with your shoulders'},
+  curl:      {name:'BICEP CURL',           metricLabel:'Elbow flexion',      metric:'elbow', top:165, bottom:50,
+              need:[11,12,13,14,15,16],       view:'Face the camera',
+              cue:'Keep your elbows tucked in at your sides'},
+  press:     {name:'OVERHEAD PRESS',       metricLabel:'Elbow extension',    metric:'elbow', top:85,  bottom:168,
+              need:[11,12,13,14,15,16],       view:'Face the camera',
+              cue:'Press straight up — keep your ribs down'},
+  raise:     {name:'LATERAL RAISE',        metricLabel:'Shoulder abduction', metric:'abd',   top:20,  bottom:85,
+              need:[11,12,13,14,23,24],       view:'Face the camera',
+              cue:'Lead with your elbows, not your hands'},
+  jack:      {name:'JUMPING JACK',         metricLabel:'Shoulder abduction', metric:'abd',   top:20,  bottom:150,
+              need:[11,12,13,14,23,24],       view:'Face the camera',
+              cue:'All the way up — hands above your head'},
+  bridge:    {name:'GLUTE BRIDGE',         metricLabel:'Hip extension',      metric:'hip',   top:105, bottom:165,
+              need:[11,12,23,24,25,26],       view:'Lie side-on to the camera',
+              cue:'Squeeze your glutes at the top'},
+  kneeraise: {name:'STANDING KNEE RAISE',  metricLabel:'Hip flexion',        metric:'hip',   top:172, bottom:100,
+              need:[11,12,23,24,25,26],       unilateral:true,   view:'Turn side-on',
+              cue:'Stand tall — don’t lean back as you lift'}
 };
 let ex = EX.squat;
 
@@ -574,6 +640,16 @@ function scoreSession(){
   const decay = Math.max(0,(qF-qL)/(qF||1));
   const completion = Math.min(1, fsm.full/10);
   const Endurance = 0.5*completion*100 + 0.5*(1-decay)*100;
+
+  /* A lunge or a knee raise is asymmetric by design, so scoring Symmetry would
+     penalise correct execution. Drop the term and renormalise the remaining
+     weights rather than substituting a flattering 100. */
+  if(ex.unilateral){
+    const w=0.40+0.25+0.15;
+    return { score:Math.round((0.40*Range+0.25*Control+0.15*Endurance)/w),
+             Range:Math.round(Range), Control:Math.round(Control),
+             Symmetry:null, Endurance:Math.round(Endurance), n };
+  }
   return { score:Math.round(0.40*Range+0.25*Control+0.20*Symmetry+0.15*Endurance),
            Range:Math.round(Range), Control:Math.round(Control),
            Symmetry:Math.round(Symmetry), Endurance:Math.round(Endurance), n };
@@ -585,6 +661,12 @@ function showScore(){
   $('sScore').textContent=r.score;
   $('sMeta').textContent=fsm.full+' full · '+fsm.partial+' partial';
   [['R',r.Range],['C',r.Control],['S',r.Symmetry],['E',r.Endurance]].forEach(([k,v])=>{
+    if(v===null){                       /* unilateral: term dropped, not faked */
+      $('b'+k).style.width='0%'; $('n'+k).textContent='n/a';
+      $('n'+k).style.color='var(--ink-faint)';
+      return;
+    }
+    $('n'+k).style.color='';
     $('b'+k).style.width=v+'%';
     $('b'+k).style.background = v<75 ? 'var(--warn)' : 'var(--accent)';
     $('n'+k).textContent=v;
@@ -621,7 +703,7 @@ const fade = v => Math.max(0,Math.min(1,(v-0.20)/0.30));
    reads cyan and a far one violet; the effect carries information rather than
    just decorating. Drawn under the skeleton, additively, so joints stay on top. */
 const BEAM_PTS=[0,11,12,13,14,15,16,23,24,25,26,27,28];
-let beamMode='setup', beamIntensity=0.85;
+let beamMode='always', beamIntensity=0.85;
 
 function drawBeams(P, Z, vis, k){
   if(k<=0.01) return;
@@ -705,6 +787,96 @@ function drawSkeleton(P, Zs, vis, beamK){
   });
 }
 
+/* ══════════ camera view modes ══════════
+   Blur is done by downscaling the frame to a tenth, then drawing it back up with
+   a small blur — a box blur at full resolution would cost more than the pose model.
+   Background blur additionally uses the segmentation mask the model can emit, so
+   the person stays sharp against an unreadable room. */
+const bgc=$('bg'), bgx=bgc.getContext('2d');
+const tiny=document.createElement('canvas'), tinyx=tiny.getContext('2d');
+const person=document.createElement('canvas'), personx=person.getContext('2d');
+const maskc=document.createElement('canvas'), maskx=maskc.getContext('2d');
+let viewMode='normal';
+
+function maskBytes(mask){
+  try{ const u=mask.getAsUint8Array(); if(u && u.length) return u; }catch(e){}
+  try{
+    const f=mask.getAsFloat32Array();
+    const u=new Uint8Array(f.length);
+    for(let i=0;i<f.length;i++) u[i]=Math.max(0,Math.min(255,f[i]*255));
+    return u;
+  }catch(e){}
+  return null;
+}
+
+function drawBackdrop(mask){
+  const W=bgc.width, H=bgc.height;
+  if(!W||!H) return;
+  if(viewMode==='hidden'){
+    const g=bgx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#08191F'); g.addColorStop(0.62,'#061318'); g.addColorStop(1,'#03090C');
+    bgx.fillStyle=g; bgx.fillRect(0,0,W,H);
+    return;
+  }
+  const tw=Math.max(32,Math.round(W/10)), th=Math.max(24,Math.round(H/10));
+  if(tiny.width!==tw){ tiny.width=tw; tiny.height=th; }
+  tinyx.drawImage(vid,0,0,tw,th);
+  bgx.save();
+  bgx.filter='blur(3px)';
+  bgx.drawImage(tiny,0,0,tw,th,0,0,W,H);
+  bgx.restore();
+
+  if(viewMode==='bgblur' && mask){
+    const bytes=maskBytes(mask);
+    if(!bytes) return;                       /* no mask this frame — stay blurred */
+    const mw=mask.width, mh=mask.height;
+    if(person.width!==W){ person.width=W; person.height=H; }
+    personx.globalCompositeOperation='source-over';
+    personx.clearRect(0,0,W,H);
+    personx.drawImage(vid,0,0,W,H);
+    if(maskc.width!==mw){ maskc.width=mw; maskc.height=mh; }
+    const img=maskx.createImageData(mw,mh);
+    for(let i=0,p=0;i<bytes.length;i++,p+=4){
+      img.data[p]=255; img.data[p+1]=255; img.data[p+2]=255; img.data[p+3]=bytes[i];
+    }
+    maskx.putImageData(img,0,0);
+    personx.globalCompositeOperation='destination-in';
+    personx.drawImage(maskc,0,0,mw,mh,0,0,W,H);
+    personx.globalCompositeOperation='source-over';
+    bgx.drawImage(person,0,0);
+  }
+}
+
+function applyViewMode(){
+  const showVideo = viewMode==='normal';
+  vid.style.visibility = showVideo ? 'visible' : 'hidden';
+  bgc.hidden = showVideo;
+  if(!showVideo && bgc.width!==ov.width){ bgc.width=ov.width; bgc.height=ov.height; }
+  /* Segmentation is only requested while it is actually used. setOptions is cheap
+     — it reconfigures the running graph rather than reloading the model. */
+  if(landmarker){
+    landmarker.setOptions({outputSegmentationMasks: viewMode==='bgblur'}).catch(()=>{});
+  }
+}
+
+/* ══════════ fullscreen ══════════ */
+const stageEl=document.querySelector('.stage');
+function inFs(){ return stageEl.classList.contains('fs'); }
+function enterFs(){
+  stageEl.classList.add('fs'); document.body.classList.add('fslock');
+  $('fsBtn').textContent='Exit full screen';
+  if(stageEl.requestFullscreen) stageEl.requestFullscreen().catch(()=>{});
+}
+function exitFs(){
+  stageEl.classList.remove('fs'); document.body.classList.remove('fslock');
+  $('fsBtn').textContent='Full screen';
+  if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && inFs()) exitFs(); });
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement && inFs() && !window.__fauxOnly) exitFs();
+});
+
 /* ══════════ model ══════════ */
 let landmarker=null, running=false, lastVideoTime=-1, lastT=0;
 
@@ -720,7 +892,8 @@ async function initModel(){
         delegate:"GPU"
       },
       runningMode:"VIDEO", numPoses:1, minPoseDetectionConfidence:0.5,
-      minPosePresenceConfidence:0.5, minTrackingConfidence:0.5
+      minPosePresenceConfidence:0.5, minTrackingConfidence:0.5,
+      outputSegmentationMasks:false        /* switched on only for background blur */
     });
     clearTimeout(slow);
     status('model ready','on');
@@ -746,7 +919,10 @@ async function startCamera(){
     /* Mirror only the selfie camera. A rear camera is already showing the world
        the right way round, and flipping it makes left/right cues wrong. */
     document.querySelector('.mirror').classList.toggle('noflip', facing!=='user');
-    $('idle').hidden=true; $('over').hidden=false; $('camFlip').hidden=false;
+    bgc.width=ov.width; bgc.height=ov.height;
+    applyViewMode();
+    $('idle').hidden=true; $('over').hidden=false;
+    $('camFlip').hidden=false; $('fsBtn').hidden=false;
     if(!running){ resetSession(); running=true; requestAnimationFrame(loop); }
     status('tracking','on');
     cue('setup','Step back until your whole body is in frame');
@@ -774,12 +950,20 @@ function analyse(W, vis, now, dt){
   } else if(ex.metric==='elbow'){
     mL=jointAngle(W[L.Lsh],W[L.Lel],W[L.Lwr]);
     mR=jointAngle(W[L.Rsh],W[L.Rel],W[L.Rwr]);
+  } else if(ex.metric==='hip'){
+    mL=jointAngle(W[L.Lsh],W[L.Lhp],W[L.Lkn]);
+    mR=jointAngle(W[L.Rsh],W[L.Rhp],W[L.Rkn]);
   } else {
     mL=jointAngle(W[L.Lhp],W[L.Lsh],W[L.Lel]);
     mR=jointAngle(W[L.Rhp],W[L.Rsh],W[L.Rel]);
   }
-  const m=(mL+mR)/2;
-  const prog=Math.max(0,Math.min(1,(ex.top-m)/(ex.top-ex.bottom)));
+  /* Convert each side to progress first, then pick. For a unilateral movement the
+     working limb is simply the one further through the rep — which is direction-
+     agnostic, so it stays correct for a press whose angle grows through the rep. */
+  const toProg=v=>Math.max(0,Math.min(1,(ex.top-v)/(ex.top-ex.bottom)));
+  const pL=toProg(mL), pR=toProg(mR);
+  const prog = ex.unilateral ? Math.max(pL,pR) : toProg((mL+mR)/2);
+  const m    = ex.unilateral ? (pL>=pR ? mL : mR) : (mL+mR)/2;
 
   /* body frame — blueprint §3.1 */
   const o=mid(W[L.Lhp],W[L.Rhp]);
@@ -840,6 +1024,14 @@ function loop(){
     } else {
       latest=null;
     }
+    if(viewMode!=='normal'){
+      const mask = res && res.segmentationMasks && res.segmentationMasks[0];
+      drawBackdrop(mask);
+    }
+    /* MPMask holds a GPU/WASM buffer — leak it and the tab climbs until it dies. */
+    if(res && res.segmentationMasks){
+      for(const m of res.segmentationMasks){ try{ m.close(); }catch(e){} }
+    }
   }
 
   /* ── smooth + draw, every frame ── */
@@ -887,14 +1079,40 @@ function loop(){
 }
 
 /* ══════════ wiring ══════════ */
+/* Releasing the MediaStream tracks is what actually turns the camera light off —
+   pausing the render loop alone leaves the device capturing. */
+function stopCamera(){
+  running=false;
+  if(vid.srcObject){ vid.srcObject.getTracks().forEach(t=>t.stop()); vid.srcObject=null; }
+  latest=null;
+  exitFs();
+  ctx.clearRect(0,0,ov.width,ov.height);
+  if(bgc.width) bgx.clearRect(0,0,bgc.width,bgc.height);
+  $('over').hidden=true; $('idle').hidden=false;
+  $('camFlip').hidden=true; $('fsBtn').hidden=true;
+  const b=$('startBtn'); b.disabled=false; b.textContent='Turn the camera back on';
+  status('camera off');
+}
+
 $('startBtn').addEventListener('click',startCamera);
 $('camFlip').addEventListener('click',function(){
   facing = facing==='user' ? 'environment' : 'user';
   this.textContent = facing==='user' ? 'Flip camera' : 'Front camera';
   startCamera();
 });
+$('fsBtn').addEventListener('click',()=>{ inFs() ? exitFs() : enterFs(); });
+$('viewSel').addEventListener('change',function(){ viewMode=this.value; applyViewMode(); });
 $('resetBtn').addEventListener('click',()=>{ resetSession(); cue('setup','Reps reset'); });
-$('endBtn').addEventListener('click',showScore);
+$('endBtn').addEventListener('click',()=>{
+  const had=sess.reps.length;
+  showScore();
+  if(had) stopCamera();          /* nothing to score yet? keep the camera running */
+});
+/* A backgrounded tab keeps the camera live otherwise — costly on a phone. */
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden && running) status('paused — tab in background');
+  else if(running) status('tracking','on');
+});
 $('beamSel').addEventListener('change',function(){ beamMode=this.value; });
 $('beamInt').addEventListener('input',function(){
   beamIntensity=+this.value/100; $('beamV').textContent=this.value+'%';
@@ -908,13 +1126,19 @@ $('boneChk').addEventListener('change',function(){
   boneLock=this.checked; boneLen.clear();
   $('boneHint').textContent = boneLock? 'stops limbs stretching' : 'raw joint positions';
 });
-$('exSel').addEventListener('change',function(){
-  ex=EX[this.value];
+function applyExercise(){
   $('exName').textContent=ex.name;
   $('uMetric').textContent=ex.metricLabel;
+  $('exHint').textContent=ex.view+' · '+ex.metricLabel.toLowerCase()+' '+ex.top+'° → '+ex.bottom+'°'
+                          +(ex.unilateral?' · one side at a time':'');
+}
+$('exSel').addEventListener('change',function(){
+  ex=EX[this.value];
+  applyExercise();
   resetSession();
-  cue('setup','Switched to '+ex.name.toLowerCase());
+  cue('setup',ex.name.charAt(0)+ex.name.slice(1).toLowerCase()+' — '+ex.view.toLowerCase());
 });
+applyExercise();
 
 initModel();
 </script>
