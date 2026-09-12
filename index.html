@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MyCalAgent Movement — Preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#EFF3F4; --surface:#FFFFFF; --ink:#0C1E25; --ink-muted:#587380; --line:#D7E1E4;
+  --accent:#0E9FB4; --accent-soft:#D6EFF3; --accent-ink:#076477; --violet:#7666E8;
+  --inst:#071519; --inst-line:#15404C; --inst-ink:#CDE5EA; --inst-muted:#6B939F;
+  --fd:'Archivo',ui-sans-serif,system-ui,sans-serif;
+  --fb:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;
+  --fm:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{--ground:#050F13;--surface:#0C1F26;--ink:#DFEDF0;--ink-muted:#7FA0AC;--line:#1A3B45;
+        --accent:#2CC0D4;--accent-soft:#0A3540;--accent-ink:#9FE2EC}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--fb);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding-inline:20px;padding-block:0}
+h1,h2,h3{font-family:var(--fd);margin:0;letter-spacing:-.02em;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.eyebrow{font-family:var(--fm);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-muted)}
+
+header{padding-block:46px 30px}
+header h1{font-size:clamp(28px,6vw,40px);font-weight:700;line-height:1.08;margin-top:10px}
+header p{margin-top:14px;color:var(--ink-muted);max-width:52ch;font-size:16px}
+
+.cards{display:grid;gap:14px;padding-bottom:14px}
+.card{
+  display:block;text-decoration:none;background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;padding:20px;transition:border-color .15s, transform .15s;
+}
+.card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.card .top{display:flex;align-items:center;gap:11px}
+.card .dot{width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent-ink);font-family:var(--fm);font-size:15px;font-weight:600}
+.card h2{font-size:18px;font-weight:600}
+.card .meta{font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-top:2px}
+.card p{margin-top:12px;font-size:14px;color:var(--ink-muted)}
+.card .go{display:inline-block;margin-top:14px;font-weight:600;color:var(--accent-ink);font-size:14px}
+.card.dark{background:var(--inst);border-color:var(--inst-line)}
+.card.dark h2{color:var(--inst-ink)}
+.card.dark .meta,.card.dark p{color:var(--inst-muted)}
+.card.dark .dot{background:#0F3C48;color:#9FE2EC}
+.card.dark .go{color:#7EE0EE}
+.card.dark:hover{border-color:#2CC0D4}
+
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:15px 17px;
+  border-radius:0 10px 10px 0;margin-top:8px;font-size:14px}
+.note b{font-weight:600}
+.note p + p{margin-top:8px}
+
+footer{border-top:1px solid var(--line);margin-top:34px;padding-block:22px 44px;
+  font-size:12px;color:var(--ink-muted);font-family:var(--fm)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">MyCalAgent · Prototype</p>
+    <h1>Movement</h1>
+    <p>A camera-based exercise feature in development — guided mobility, workouts and joint care, with real-time form tracking. Two things to look at, and honest reactions to either are what I'm after.</p>
+  </header>
+
+  <div class="cards">
+    <a class="card" href="mockup.html">
+      <div class="top">
+        <span class="dot">1</span>
+        <div>
+          <h2>Tap through the app</h2>
+          <p class="meta">2 min · works on any phone</p>
+        </div>
+      </div>
+      <p>The full flow as it would feel in the app — the home screen, the pre-session check-in, the live session with tracking, and the report you get afterwards. No camera needed, nothing to install.</p>
+      <span class="go">Open the mockup →</span>
+    </a>
+
+    <a class="card dark" href="camera.html">
+      <div class="top">
+        <span class="dot">2</span>
+        <div>
+          <h2>Try it on yourself</h2>
+          <p class="meta">Needs camera permission</p>
+        </div>
+      </div>
+      <p>The real thing: it tracks your body through the camera and counts your reps. Stand back so your whole body is in frame and do a few squats. Nothing is recorded or uploaded — the analysis happens inside your browser.</p>
+      <span class="go">Open the live demo →</span>
+    </a>
+  </div>
+
+  <div class="note">
+    <p><b>What would help most:</b> did the flow make sense without anyone explaining it? Was anything confusing on the report screen? And would you actually use this?</p>
+    <p>Rough edges are expected — it's a prototype, not a release.</p>
+  </div>
+
+  <footer>MYCALAGENT · MOVEMENT PREVIEW · NOT A RELEASED PRODUCT</footer>
+</div>
+
+</body>
+</html>

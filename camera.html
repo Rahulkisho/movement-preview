@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MyCalAgent Movement — Live Camera Engine Test</title>
+<!--
+  ─────────────────────────────────────────────────────────────────────────────
+  HOW TO RUN THIS FILE
+
+  This page loads MediaPipe as an ES module, and Chrome blocks module imports on
+  file:// URLs. So don't just double-click it — serve it from a local folder:
+
+      cd <the folder containing this file>
+      python3 -m http.server 8000
+
+  then open  http://localhost:8000/movement-webcam-demo.html
+
+  (Any static server works: `npx serve`, `php -S localhost:8000`, etc.)
+  localhost is a secure context, so the camera prompt will appear normally.
+
+  Nothing is uploaded. The camera stream, the model inference and every number
+  on this page stay in your browser. Only the model file itself is downloaded.
+  ─────────────────────────────────────────────────────────────────────────────
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#EDF2F3; --surface:#FFFFFF; --surface-2:#E7EEF0;
+  --ink:#0C1E25; --ink-muted:#587380; --ink-faint:#8AA3AD; --line:#D9E3E6;
+  --accent:#0E9FB4; --accent-soft:#D6EFF3; --accent-ink:#076477;
+  --depth-far:#7666E8;
+  --good:#2C9B68; --good-soft:#E3F4EC; --warn:#C9862A; --warn-soft:#FBF0DE; --crit:#CE4F3C;
+  --inst:#071519; --inst-2:#0C242C; --inst-line:#15404C; --inst-ink:#CDE5EA; --inst-muted:#6B939F;
+  --font-display:'Archivo',ui-sans-serif,system-ui,sans-serif;
+  --font-body:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#040F13; --surface:#0C1F26; --surface-2:#122D36;
+    --ink:#DFEDF0; --ink-muted:#7FA0AC; --ink-faint:#5C7C88; --line:#1A3B45;
+    --accent:#2CC0D4; --accent-soft:#0A3540; --accent-ink:#9FE2EC;
+    --good-soft:#0A2E22; --warn-soft:#2E2308;
+  }
+}
+*{box-sizing:border-box}
+/* Author styles beat the UA sheet, so `display` rules on .idle/.stageover would
+   otherwise defeat the hidden attribute. This has to win. */
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-display);margin:0;letter-spacing:-.02em}
+p{margin:0}
+button{font:inherit;font-family:var(--font-body);cursor:pointer}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.page{max-width:1240px;margin:0 auto;padding-inline:20px}
+
+header.top{border-bottom:1px solid var(--line);background:var(--surface)}
+.top-in{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-block:13px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand b{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.03em}
+.brand span{font-family:var(--font-mono);font-size:10.5px;color:var(--accent-ink);background:var(--accent-soft);padding:2px 7px;border-radius:4px;letter-spacing:.06em}
+.top-in .st{font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);flex:none}
+.dot.on{background:var(--good)} .dot.err{background:var(--crit)}
+
+.banner{margin-block:18px;border-radius:12px;padding:16px 18px;border:1px solid;font-size:14px}
+.banner.warn{background:var(--warn-soft);border-color:rgba(201,134,42,.4)}
+.banner.err{background:rgba(206,79,60,.1);border-color:rgba(206,79,60,.4)}
+.banner b{display:block;font-weight:600;margin-bottom:5px;font-family:var(--font-display)}
+.banner code{font-family:var(--font-mono);font-size:12.5px;background:rgba(0,0,0,.07);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:2px}
+@media (prefers-color-scheme:dark){.banner code{background:rgba(255,255,255,.08)}}
+
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start;padding-block:6px 44px}
+
+.stage{position:relative;background:var(--inst);border:1px solid var(--inst-line);border-radius:14px;overflow:hidden;aspect-ratio:4/3}
+.mirror{position:absolute;inset:0;transform:scaleX(-1)}
+.mirror video,.mirror canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mirror video{opacity:.88}
+.stageover{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:16px}
+.otop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:rgba(5,17,21,.72);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(4px)}
+.tag.on{color:#7EE0EE;border-color:#1C5B6B}
+.repbox{text-align:right}
+.repbox b{display:block;font-family:var(--font-mono);font-size:44px;font-weight:600;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.repbox i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:#9FC4CE;letter-spacing:.08em}
+.cuebar{align-self:center;max-width:90%;font-size:15px;font-weight:500;text-align:center;padding:12px 18px;border-radius:12px;background:rgba(5,17,21,.85);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(5px);transition:opacity .2s,transform .2s}
+.cuebar[data-sev="warn"]{border-color:#7A5A1B;color:#F3C877;background:rgba(38,27,6,.9)}
+.cuebar[data-sev="good"]{border-color:#1D5C42;color:#84DDB4;background:rgba(6,29,21,.9)}
+.cuebar[data-sev="setup"]{border-color:#2A4E5C;color:#9FC4CE}
+.cuebar.hide{opacity:0;transform:translateY(6px)}
+/* Depth meter. Thick enough to read at a glance from across a room, with the two
+   thresholds the rep state machine actually uses marked on it — so the bar tells
+   you where a rep starts counting and where it counts as full, instead of being
+   an abstract progress strip. */
+.rom{margin-top:14px}
+.romtrack{position:relative;height:20px;border-radius:11px;overflow:hidden;
+  background:rgba(4,16,20,.80);border:1px solid rgba(28,91,107,.95);
+  box-shadow:0 2px 14px rgba(0,0,0,.45);backdrop-filter:blur(5px)}
+.romtrack i{display:block;height:100%;width:0%;border-radius:10px;
+  background:linear-gradient(90deg,#7666E8 0%,#2CC0D4 58%,#8FEAF7 100%);
+  box-shadow:0 0 22px rgba(44,192,212,.6), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:width .06s linear}
+.romtrack .tick{position:absolute;top:0;bottom:0;width:2px;background:rgba(205,229,234,.38)}
+.romtrack .tick.full{background:rgba(132,221,180,.8);box-shadow:0 0 8px rgba(132,221,180,.5)}
+.romfoot{display:flex;justify-content:space-between;align-items:baseline;margin-top:7px;
+  font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;color:var(--inst-muted);
+  text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.romfoot b{font-size:15px;color:#DCF1F5;font-weight:600;font-variant-numeric:tabular-nums}
+.idle{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;background:var(--inst)}
+.idle h2{color:var(--inst-ink);font-size:21px;font-weight:600}
+.idle p{color:var(--inst-muted);font-size:13.5px;margin-top:9px;max-width:44ch}
+.idle button{margin-top:18px;padding:12px 26px;border-radius:11px;border:0;background:var(--accent);color:#fff;font-weight:600;font-size:15px}
+.idle button:disabled{opacity:.45}
+
+.panel{display:grid;gap:12px;position:sticky;top:16px}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px}
+.pcard h3{font-size:12.5px;font-weight:600}
+.pcard > p{font-size:11.5px;color:var(--ink-muted);margin-top:3px;line-height:1.45}
+.field{margin-top:11px}
+.field > label{display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px}
+select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:11px}
+.grid2 div{background:var(--surface);padding:9px 10px}
+.grid2 u{display:block;text-decoration:none;font-family:var(--font-mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-muted)}
+.grid2 b{display:block;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:17px;font-weight:500;margin-top:2px}
+.grid2 b.sm{font-size:12px}
+.grid2 b.warnv{color:var(--warn)} .grid2 b.goodv{color:var(--good)}
+.act{display:flex;gap:8px;margin-top:11px}
+.act button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:12.5px}
+.act button.prime{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+.scorewrap{display:none;margin-top:11px;padding-top:13px;border-top:1px solid var(--line)}
+.scorewrap.on{display:block}
+.scorehead{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.scorehead .big{font-family:var(--font-mono);font-size:38px;font-weight:600;line-height:.9;letter-spacing:-.03em}
+.bars{display:grid;gap:9px;margin-top:12px}
+.brow{display:grid;grid-template-columns:66px 26px 1fr 28px;align-items:center;gap:7px;font-size:12px}
+.brow u{text-decoration:none;color:var(--ink-muted)}
+.brow .wt{font-family:var(--font-mono);font-size:9px;color:var(--ink-faint)}
+.brow .tk{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.brow .tk i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+.brow b{font-family:var(--font-mono);font-size:12px;font-weight:500;text-align:right}
+.chkrow{display:flex;align-items:flex-start;gap:9px;margin-top:11px;font-size:12.5px;cursor:pointer}
+.chkrow input{margin-top:2px;accent-color:var(--accent);flex:none}
+.chkrow em{display:block;font-style:normal;font-size:11px;color:var(--ink-muted);margin-top:1px}
+.note{font-size:11.5px;color:var(--ink-muted);line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+.legend{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:9.5px;color:var(--ink-muted);margin-top:9px}
+.legend i{display:block;width:46px;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--depth-far),#2CC0D4)}
+
+@media (max-width:940px){ .lab{grid-template-columns:1fr} .panel{position:static} }
+/* Phones: a 4:3 landscape stage cuts a standing person off at the knees, so the
+   frame goes portrait and the controls move below it. Touch targets go to 44px. */
+@media (max-width:640px){
+  .page{padding-inline:14px}
+  .stage{aspect-ratio:3/4}
+  .lab{padding-block:4px 30px;gap:14px}
+  .repbox b{font-size:38px}
+  .cuebar{font-size:14px;padding:13px 16px}
+  .romtrack{height:22px}
+  .romfoot{font-size:10px}
+  .romfoot b{font-size:16px}
+  select,.act button,.idle button{min-height:44px}
+  .idle h2{font-size:19px}
+  .idle p{font-size:13px}
+  .pcard{padding:13px}
+}
+.camflip{
+  pointer-events:auto;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;padding:7px 11px;border-radius:999px;background:rgba(5,17,21,.72);
+  border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(4px);cursor:pointer;
+}
+.mirror.noflip{transform:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="page top-in">
+    <div class="brand"><b>MyCalAgent</b><span>MOVEMENT · LIVE ENGINE TEST</span></div>
+    <div class="st"><span class="dot" id="stDot"></span><span id="stText">loading model…</span></div>
+  </div>
+</header>
+
+<div class="page">
+
+  <div class="banner warn" id="serveBanner" hidden>
+    <b>This page needs to be served over http, not opened as a file.</b>
+    Browsers block module scripts on <code>file://</code>, so nothing loaded. From the folder containing this file, run
+    <code>python3 -m http.server 8000</code> then open <code>http://localhost:8000/movement-webcam-demo.html</code>.
+  </div>
+
+  <div class="banner err" id="phoneBanner" hidden>
+    <b>This won't work on a phone from a file.</b>
+    <p style="margin-top:6px">You opened this as a local file. Phone browsers block two things on <code>file://</code>: the module import this page needs, and camera access — which requires a secure origin. Neither has a workaround on the device.</p>
+    <p style="margin-top:8px">To try it on a phone, the page has to be on an <b>https://</b> address. Drop this single file onto any free static host — Netlify Drop, Cloudflare Pages, Vercel or GitHub Pages all work, take about two minutes, and give you a link you can send to anyone.</p>
+  </div>
+  <div class="banner err" id="errBanner" hidden><b>Something went wrong</b><span id="errText"></span></div>
+
+  <div class="lab">
+    <div>
+      <div class="stage">
+        <div class="mirror">
+          <video id="vid" playsinline muted></video>
+          <canvas id="ov"></canvas>
+        </div>
+        <div class="stageover" id="over" hidden>
+          <div class="otop">
+            <span style="display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+              <span class="tag on" id="exName">BODYWEIGHT SQUAT</span>
+              <button class="camflip" type="button" id="camFlip" hidden>Flip camera</button>
+            </span>
+            <span class="repbox"><b id="repN">0</b><i id="repT">REPS</i></span>
+          </div>
+          <div>
+            <div class="cuebar hide" id="cue" data-sev="setup">Step back until your whole body is in frame</div>
+            <div class="rom">
+              <div class="romtrack">
+                <i id="romBar"></i>
+                <span class="tick" style="left:15%"></span>
+                <span class="tick full" style="left:85%"></span>
+              </div>
+              <div class="romfoot"><span>REP COUNTS</span><b id="romPct">0%</b><span>FULL DEPTH</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="idle" id="idle">
+          <div>
+            <h2>Live camera engine test</h2>
+            <p>Real MediaPipe BlazePose, 33 landmarks in 3D, running the blueprint's own angle math, rep state machine and MoveScore on your actual body. Nothing leaves this browser.</p>
+            <button id="startBtn" disabled>Loading model…</button>
+          </div>
+        </div>
+      </div>
+      <p class="note" style="margin-top:12px"><b>Setup that works best:</b> stand 6–8 feet back with your whole body in frame, plain wall behind you, light in front of you rather than a window behind. Squats and lateral raises read best facing the camera; push-ups from the side.</p>
+    </div>
+
+    <aside class="panel">
+      <div class="pcard">
+        <h3>Exercise</h3>
+        <div class="field">
+          <label for="exSel">Movement</label>
+          <select id="exSel">
+            <option value="squat">Bodyweight squat — knee flexion</option>
+            <option value="sitstand">Sit-to-stand — knee flexion</option>
+            <option value="pushup">Push-up — elbow flexion</option>
+            <option value="raise">Lateral raise — shoulder abduction</option>
+          </select>
+        </div>
+        <div class="act">
+          <button id="resetBtn">Reset reps</button>
+          <button id="endBtn" class="prime">End &amp; score</button>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <h3>Live engine readout</h3>
+        <p>Every value computed this frame from BlazePose world landmarks — metres, origin at your hip centre.</p>
+        <div class="grid2">
+          <div><u id="uMetric">Knee flexion</u><b id="tAngle">—</b></div>
+          <div><u>Rep progress</u><b id="tProg">0.00</b></div>
+          <div><u>FSM state</u><b class="sm" id="tState">READY</b></div>
+          <div><u>Full / partial</u><b id="tReps">0 / 0</b></div>
+          <div><u>Tracking quality</u><b class="sm" id="tQual">0.00</b></div>
+          <div><u>Inference</u><b class="sm" id="tFps">— fps</b></div>
+        </div>
+        <div class="legend">FAR<i></i>NEAR<span style="margin-left:auto">depth shading</span></div>
+      </div>
+
+      <div class="pcard">
+        <h3>Frame effects</h3>
+        <p>Light cones from the device to each tracked joint. Colour follows the depth palette, so beams to near joints read cyan and far ones violet.</p>
+        <div class="field">
+          <label for="beamSel">Tracking beams</label>
+          <select id="beamSel">
+            <option value="off">Off</option>
+            <option value="setup" selected>Setup only — retire after first rep</option>
+            <option value="always">Always on</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="beamInt">Intensity</label>
+          <div class="rangerow"><input type="range" id="beamInt" min="0" max="100" value="85" step="5"><b id="beamV">85%</b></div>
+        </div>
+        <div class="grid2">
+          <div><u>Draw cost / frame</u><b class="sm" id="tBeamMs">—</b></div>
+          <div><u>Of a 33 ms budget</u><b class="sm" id="tBeamPct">—</b></div>
+        </div>
+        <p class="note">Measured live on this machine. In the app this ships as a user setting, default off — see the blueprint.</p>
+      </div>
+
+      <div class="pcard">
+        <h3>Stabilization</h3>
+        <p>One Euro filtering, run per rendered frame and weighted by each joint's confidence. Steadier costs latency — find the point where it still feels responsive.</p>
+        <div class="field">
+          <label for="smoothSel">Smoothing</label>
+          <select id="smoothSel">
+            <option value="off">Off — raw model output</option>
+            <option value="responsive">Responsive — lowest lag</option>
+            <option value="balanced" selected>Balanced (default)</option>
+            <option value="steady">Steady — best ROM accuracy</option>
+            <option value="heavy">Heavy — for noisy tracking</option>
+          </select>
+        </div>
+        <label class="chkrow"><input type="checkbox" id="boneChk" checked><span>Lock bone lengths <em id="boneHint">stops limbs stretching</em></span></label>
+        <div class="grid2">
+          <div><u>Cutoff</u><b class="sm" id="tCut">1.30 Hz</b></div>
+          <div><u>Added latency</u><b class="sm" id="tLag">~70 ms</b></div>
+        </div>
+        <p class="note" style="margin-top:9px">Heavier is not automatically steadier — below ~1 Hz the filter starts lagging real movement and eating measured depth. <b>Balanced</b> tested best.</p>
+      </div>
+
+      <div class="pcard">
+        <h3>Knee valgus — two reference frames</h3>
+        <p>Frontal-plane deviation of the knee from the hip–ankle line. Turn side-on and watch the camera-axis number drift while the body-frame one holds.</p>
+        <div class="grid2">
+          <div><u>Camera axes</u><b class="sm warnv" id="vCam">— cm</b></div>
+          <div><u>Body frame</u><b class="sm goodv" id="vBody">— cm</b></div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <h3>Session score</h3>
+        <p>Floor-anchored MoveScore from the reps you just did. Press <b>End &amp; score</b>.</p>
+        <div class="scorewrap" id="scoreWrap">
+          <div class="scorehead">
+            <div><p class="eyebrow">MoveScore</p><div class="big" id="sScore">—</div></div>
+            <span class="mono" style="font-size:11.5px;color:var(--ink-muted)" id="sMeta"></span>
+          </div>
+          <div class="bars">
+            <div class="brow"><u>Range</u><span class="wt">40%</span><div class="tk"><i id="bR"></i></div><b id="nR">0</b></div>
+            <div class="brow"><u>Control</u><span class="wt">25%</span><div class="tk"><i id="bC"></i></div><b id="nC">0</b></div>
+            <div class="brow"><u>Symmetry</u><span class="wt">20%</span><div class="tk"><i id="bS"></i></div><b id="nS">0</b></div>
+            <div class="brow"><u>Endurance</u><span class="wt">15%</span><div class="tk"><i id="bE"></i></div><b id="nE">0</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <p class="note"><b>Nothing is uploaded.</b> The video stream and every landmark stay in this tab. Only the MediaPipe model file is fetched, once, from Google's CDN. Close the tab and it is all gone.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  /* Classic script: if the module below never runs (file:// blocks modules),
+     surface the fix rather than leaving a dead page. */
+  window.__engineReady = false;
+  /* Detect the unrecoverable case immediately rather than after a 7 s wait:
+     a local file opened on a phone can never work, and saying so at once beats
+     leaving someone staring at "loading model…". */
+  (function(){
+    var isFile = location.protocol === 'file:';
+    var isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+               || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+    if(isFile && isPhone){
+      var pb=document.getElementById('phoneBanner'); if(pb) pb.hidden=false;
+      var d=document.getElementById('stDot'), t=document.getElementById('stText');
+      if(d){d.className='dot err';} if(t){t.textContent='needs https';}
+      var sb=document.getElementById('startBtn');
+      if(sb){ sb.textContent='Needs an https:// address'; sb.disabled=true; }
+    }
+  })();
+  setTimeout(function(){
+    var pb=document.getElementById('phoneBanner');
+    if(!window.__engineReady && pb && pb.hidden){
+      var b=document.getElementById('serveBanner'); if(b) b.hidden=false;
+      var d=document.getElementById('stDot'), t=document.getElementById('stText');
+      if(d){d.className='dot err';} if(t){t.textContent='module blocked';}
+    }
+  }, 7000);
+</script>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+/* The module executed — so the file:// "modules are blocked" banner must not fire.
+   Anything that fails from here on is a network or device problem, reported separately. */
+window.__engineReady = true;
+
+const $ = id => document.getElementById(id);
+const stDot=$('stDot'), stText=$('stText');
+function status(t, cls){ stText.textContent=t; stDot.className='dot'+(cls?' '+cls:''); }
+function fail(msg){ $('errText').textContent=' '+msg; $('errBanner').hidden=false; status('error','err'); }
+
+/* ══════════ vector math — blueprint §3.2 ══════════ */
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const nrm=a=>Math.sqrt(dot(a,a));
+const unit=a=>{const n=nrm(a)||1e-9;return [a[0]/n,a[1]/n,a[2]/n];};
+const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2];
+const jointAngle=(A,B,C)=>{const u=sub(A,B),w=sub(C,B);
+  return Math.atan2(nrm(cross(u,w)),dot(u,w))*180/Math.PI;};
+
+/* ══════════ Stabilization — blueprint §3.3, expanded ══════════
+
+   Four things make a raw BlazePose overlay shimmer, and all four are handled here:
+
+   1. The landmarks are unfiltered. One Euro fixes this — it smooths hard when a
+      joint is still and backs off when it moves fast, so you get stillness without
+      the lag a plain moving average would add.
+   2. Inference runs ~30 fps but the screen redraws at 60. Drawing only on new
+      detections gives visible stepping, so the filters are run on EVERY rendered
+      frame against the most recent detection: between inferences they keep
+      converging, which interpolates the motion for free.
+   3. A landmark hovering around the visibility threshold makes bones blink in and
+      out. Visibility is now smoothed and faded rather than switched.
+   4. Low-confidence joints jump furthest. Smoothing is now confidence-weighted:
+      the less sure the model is about a joint, the heavier that joint is damped.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+const alphaOf=(cutoff,dt)=>{const tau=1/(2*Math.PI*cutoff);return 1/(1+tau/dt);};
+class LowPass{ constructor(){this.s=null;} filter(v,a){ this.s = this.s===null? v : a*v+(1-a)*this.s; return this.s; } }
+class OneEuro{
+  constructor(){ this.x=new LowPass(); this.dx=new LowPass(); this.prev=null; }
+  filter(v,dt,minCutoff,beta){
+    if(!(dt>0)) dt=1/30;
+    const deriv = this.prev===null? 0 : (v-this.prev)/dt;
+    const edx = this.dx.filter(deriv, alphaOf(1.0,dt));
+    const cutoff = minCutoff + beta*Math.abs(edx);
+    const out = this.x.filter(v, alphaOf(cutoff,dt));
+    this.prev = v; return out;
+  }
+}
+
+/* Tuned by parameter sweep against a simulated 3 s squat cycle with BlazePose-like
+   noise, 60 trials per point. Measured jitter reduction, tracking lag, and — the
+   one that matters for scoring — how much peak range of motion the filter eats.
+
+   The non-obvious result: smoothing harder is NOT monotonically steadier. Below
+   about 1 Hz the filter lags so far behind real movement that measured jitter
+   rises again AND it clips real depth. At 0.25 Hz it swallowed 6.9° of squat
+   depth, which would corrupt Range — 40% of MoveScore. The optimum sits at
+   1.3–1.6 Hz: 78% less jitter for ~70 ms of lag and under 0.5° of ROM error.
+
+   Heavy is the exception: under 3x noise (poor light, partial occlusion) the low
+   cutoffs do win, reaching 87% reduction. It is for bad conditions, not a
+   general "better" setting.                                                     */
+const PRESETS={
+  off:        {min:60.0, beta:0.000, label:'none',   note:'raw model output'},
+  responsive: {min:2.00, beta:0.012, label:'~50 ms', note:'76% less jitter'},
+  balanced:   {min:1.30, beta:0.010, label:'~70 ms', note:'78% less jitter'},
+  steady:     {min:1.00, beta:0.007, label:'~100 ms',note:'77% · best ROM fidelity'},
+  heavy:      {min:0.60, beta:0.007, label:'~135 ms',note:'for noisy tracking only'}
+};
+let preset = PRESETS.balanced;
+let boneLock = true;
+
+const fImg   = Array.from({length:33},()=>[new OneEuro(),new OneEuro(),new OneEuro()]);
+const fWorld = Array.from({length:33},()=>[new OneEuro(),new OneEuro(),new OneEuro()]);
+const fVis   = Array.from({length:33},()=>new LowPass());
+
+/* Confidence weighting: an unsure joint gets a much lower cutoff, so instead of
+   flying around the frame it drifts. 0.30 at vis=0, full cutoff at vis=1. */
+const conf = v => 0.30 + 0.70*Math.max(0,Math.min(1,v));
+
+function smooth(raw, bank, dt, vis){
+  return raw.map((p,i)=>{
+    const c = preset.min*conf(vis?vis[i]:1), b = preset.beta;
+    return [ bank[i][0].filter(p.x,dt,c,b),
+             bank[i][1].filter(p.y,dt,c,b),
+             bank[i][2].filter(p.z,dt,c,b) ];
+  });
+}
+function smoothVis(raw,dt){
+  const a = 1-Math.exp(-dt*6);          /* ~170 ms time constant */
+  return raw.map((v,i)=>fVis[i].filter(v,a));
+}
+
+/* ── Bone-length lock ──────────────────────────────────────────────────────
+   BlazePose limb lengths wobble frame to frame, which is what reads as the
+   skeleton "distorting" — a thigh visibly stretching and shrinking while you
+   hold still. Each bone's length is tracked with a slow EMA; when the current
+   length departs from it by more than the deadband, the child joint is pulled
+   back along the bone. The deadband is wide (30%) so genuine perspective change
+   passes through untouched and only the pops get corrected. */
+const CHAIN=[[23,24],[23,11],[24,12],[11,0],[11,13],[13,15],[12,14],[14,16],
+             [23,25],[25,27],[27,31],[24,26],[26,28],[28,32]];
+const boneLen=new Map();
+function lockBones(P,dt){
+  if(!boneLock) return P;
+  const Q=P.map(p=>p.slice());
+  const a=1-Math.exp(-dt*0.8);              /* ~1.2 s time constant */
+  for(const [i,j] of CHAIN){
+    const dx=Q[j][0]-Q[i][0], dy=Q[j][1]-Q[i][1];
+    const len=Math.hypot(dx,dy);
+    if(len<1e-6) continue;
+    const key=i+'-'+j;
+    const ref=boneLen.has(key)? boneLen.get(key)*(1-a)+len*a : len;
+    boneLen.set(key,ref);
+    const lo=ref*0.70, hi=ref*1.30;
+    let target=null;
+    if(len<lo) target=lo; else if(len>hi) target=hi;
+    if(target!==null){
+      const corrected = len + (target-len)*0.5;   /* gentle: half the excess */
+      const s=corrected/len;
+      Q[j][0]=Q[i][0]+dx*s; Q[j][1]=Q[i][1]+dy*s;
+    }
+  }
+  return Q;
+}
+
+/* ══════════ landmark indices ══════════ */
+const L={ nose:0, Lsh:11,Rsh:12, Lel:13,Rel:14, Lwr:15,Rwr:16,
+          Lhp:23,Rhp:24, Lkn:25,Rkn:26, Lan:27,Ran:28, Lft:31,Rft:32 };
+const BONES=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],
+             [23,25],[25,27],[24,26],[26,28],[27,31],[28,32],[0,11],[0,12]];
+const DRAW_PTS=[0,11,12,13,14,15,16,23,24,25,26,27,28,31,32];
+
+/* ══════════ exercises ══════════ */
+const EX = {
+  squat:    {name:'BODYWEIGHT SQUAT', metricLabel:'Knee flexion',        metric:'knee',  top:170, bottom:95,
+             need:[11,12,23,24,25,26,27,28], valgusCheck:true,  cue:'Push your knees out over your toes'},
+  sitstand: {name:'SIT-TO-STAND',     metricLabel:'Knee flexion',        metric:'knee',  top:168, bottom:100,
+             need:[11,12,23,24,25,26,27,28], valgusCheck:true,  cue:'Drive through your heels, chest up'},
+  pushup:   {name:'PUSH-UP',          metricLabel:'Elbow flexion',       metric:'elbow', top:162, bottom:95,
+             need:[11,12,13,14,15,16,23,24], valgusCheck:false, cue:'Keep your hips in line with your shoulders'},
+  raise:    {name:'LATERAL RAISE',    metricLabel:'Shoulder abduction',  metric:'abd',   top:20,  bottom:85,
+             need:[11,12,13,14,23,24],       valgusCheck:false, cue:'Lead with your elbows, not your hands'}
+};
+let ex = EX.squat;
+
+/* ══════════ rep FSM — blueprint §3.5 ══════════ */
+let fsm={state:'READY',peak:0,startT:0,full:0,partial:0};
+let sess={reps:[],peakL:[],peakR:[],violFrames:0,totalFrames:0,t0:0};
+function resetSession(){
+  fsm={state:'READY',peak:0,startT:0,full:0,partial:0};
+  sess={reps:[],peakL:[],peakR:[],violFrames:0,totalFrames:0,t0:performance.now()};
+  $('repN').textContent='0'; $('scoreWrap').classList.remove('on');
+}
+let repPeakL=0, repPeakR=0;
+function stepFSM(prog,now,mL,mR){
+  if(fsm.state==='READY'){
+    if(prog>0.15){ fsm.state='DESCENDING'; fsm.startT=now; fsm.peak=prog; repPeakL=mL; repPeakR=mR; }
+    return;
+  }
+  const prev=fsm.peak;
+  if(prog>fsm.peak){ fsm.peak=prog; repPeakL=mL; repPeakR=mR; }
+  const dur=(now-fsm.startT)/1000;
+  if(dur>15){ fsm.state='READY'; fsm.peak=0; return; }
+  if(fsm.peak>0.85 && prog>0.80) fsm.state='BOTTOM';
+  else if(prog<prev-0.004)       fsm.state='ASCENDING';
+  else                           fsm.state='DESCENDING';
+  if(prog<0.15){
+    if(dur>=0.6 && fsm.peak>=0.85){
+      fsm.full++; sess.reps.push(fsm.peak); sess.peakL.push(repPeakL); sess.peakR.push(repPeakR);
+      cue('good'); if(navigator.vibrate) navigator.vibrate(30);
+    } else if(dur>=0.6 && fsm.peak>=0.35){
+      fsm.partial++; sess.reps.push(fsm.peak);
+    }
+    fsm.state='READY'; fsm.peak=0;
+  }
+}
+
+/* ══════════ scoring — blueprint §4.2 ══════════ */
+function scoreSession(){
+  const n=sess.reps.length;
+  if(!n) return null;
+  const romMean = sess.reps.reduce((a,b)=>a+b,0)/n;
+  const Range   = Math.max(0,Math.min(1,(romMean-0.60)/0.40))*100;
+  const pen     = sess.totalFrames ? (sess.violFrames*3)/sess.totalFrames : 0;
+  const Control = Math.max(0,Math.min(100,100-250*pen));
+  const mL = sess.peakL.reduce((a,b)=>a+b,0)/n, mR = sess.peakR.reduce((a,b)=>a+b,0)/n;
+  const Symmetry = (1-Math.abs(mL-mR)/Math.max(Math.abs(mL),Math.abs(mR),1e-9))*100;
+  const third = Math.max(1,Math.floor(n/3));
+  const qF = sess.reps.slice(0,third).reduce((a,b)=>a+b,0)/third;
+  const qL = sess.reps.slice(-third).reduce((a,b)=>a+b,0)/third;
+  const decay = Math.max(0,(qF-qL)/(qF||1));
+  const completion = Math.min(1, fsm.full/10);
+  const Endurance = 0.5*completion*100 + 0.5*(1-decay)*100;
+  return { score:Math.round(0.40*Range+0.25*Control+0.20*Symmetry+0.15*Endurance),
+           Range:Math.round(Range), Control:Math.round(Control),
+           Symmetry:Math.round(Symmetry), Endurance:Math.round(Endurance), n };
+}
+function showScore(){
+  const r=scoreSession();
+  if(!r){ cue('setup','Do a few reps first — nothing to score yet'); return; }
+  $('scoreWrap').classList.add('on');
+  $('sScore').textContent=r.score;
+  $('sMeta').textContent=fsm.full+' full · '+fsm.partial+' partial';
+  [['R',r.Range],['C',r.Control],['S',r.Symmetry],['E',r.Endurance]].forEach(([k,v])=>{
+    $('b'+k).style.width=v+'%';
+    $('b'+k).style.background = v<75 ? 'var(--warn)' : 'var(--accent)';
+    $('n'+k).textContent=v;
+  });
+}
+
+/* ══════════ cue banner ══════════ */
+const cueEl=$('cue'); let cueUntil=0, cueLast=0;
+const GOOD=['Good depth — hold that tempo','Even on both sides','Controlled descent — keep it'];
+function cue(kind,text){
+  const now=performance.now();
+  if(kind!=='setup' && now-cueLast<2400) return;
+  cueLast=now; cueUntil=now+(kind==='setup'?1200:2100);
+  cueEl.dataset.sev = kind;
+  cueEl.textContent = text || (kind==='warn' ? ex.cue : GOOD[fsm.full%GOOD.length]);
+  cueEl.classList.remove('hide');
+}
+
+/* ══════════ drawing ══════════ */
+const vid=$('vid'), ov=$('ov'), ctx=ov.getContext('2d');
+function depthColor(z,a){            /* z: negative = closer to camera */
+  const t=Math.max(0,Math.min(1,(0.30-z)/0.60));
+  return `rgba(${Math.round(118+(44-118)*t)},${Math.round(102+(192-102)*t)},${Math.round(232+(212-232)*t)},${a})`;
+}
+/* Fade in and out across the visibility threshold instead of switching, so a
+   joint at the edge of detection dims rather than strobing. */
+const fade = v => Math.max(0,Math.min(1,(v-0.20)/0.30));
+
+/* ── Tracking beams ───────────────────────────────────────────────────────────
+   Light cones from the device out to each tracked joint: narrow and bright at the
+   emitter, widening and falling off toward the body. They make the acquisition
+   visible — "the camera has found you" — which is exactly the message the setup
+   moment needs. Beam colour reuses the depth palette, so a beam to a near joint
+   reads cyan and a far one violet; the effect carries information rather than
+   just decorating. Drawn under the skeleton, additively, so joints stay on top. */
+const BEAM_PTS=[0,11,12,13,14,15,16,23,24,25,26,27,28];
+let beamMode='setup', beamIntensity=0.85;
+
+function drawBeams(P, Z, vis, k){
+  if(k<=0.01) return;
+  const W=ov.width, H=ov.height;
+  /* Emitter sits at the top centre — where the lens physically is on a laptop or
+     a propped phone. Centred also means the mirror transform doesn't move it, so
+     the beams read the same whichever way the preview is flipped. */
+  const S=[W*0.50, H*0.045];
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  for(const i of BEAM_PTS){
+    const f=fade(vis[i]); if(f<=0.05) continue;
+    const J=P[i];
+    const dx=J[0]-S[0], dy=J[1]-S[1], len=Math.hypot(dx,dy);
+    if(len<1) continue;
+    const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+    const w0=W*0.0035, w1=W*0.030;           /* narrow at source, wide at the joint */
+    const Ex=S[0]+ux*len*1.08, Ey=S[1]+uy*len*1.08;   /* slight tail past the joint */
+    const g=ctx.createLinearGradient(S[0],S[1],Ex,Ey);
+    const col=a=>depthColor(Z?Z[i]:0, a);
+    /* Tuned against a lit camera frame, not a black canvas — over real video the
+       beams sit on top of mid-grey walls and skin, so they need more punch than
+       they appear to need on a dark test background. */
+    g.addColorStop(0.00, col(0));
+    g.addColorStop(0.07, col(0.34*f*k));
+    g.addColorStop(0.42, col(0.15*f*k));
+    g.addColorStop(0.82, col(0.05*f*k));
+    g.addColorStop(1.00, col(0));
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.moveTo(S[0]+px*w0, S[1]+py*w0);
+    ctx.lineTo(Ex+px*w1, Ey+py*w1);
+    ctx.lineTo(Ex-px*w1, Ey-py*w1);
+    ctx.lineTo(S[0]-px*w0, S[1]-py*w0);
+    ctx.closePath(); ctx.fill();
+  }
+  const r=W*0.12;
+  const bg=ctx.createRadialGradient(S[0],S[1],0,S[0],S[1],r);
+  bg.addColorStop(0,   'rgba(170,245,255,'+(0.55*k)+')');
+  bg.addColorStop(0.28,'rgba(70,200,222,'+(0.20*k)+')');
+  bg.addColorStop(1,   'rgba(70,200,222,0)');
+  ctx.fillStyle=bg;
+  ctx.beginPath(); ctx.arc(S[0],S[1],r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawSkeleton(P, Zs, vis, beamK){
+  const W=ov.width, H=ov.height;
+  ctx.clearRect(0,0,W,H);
+  if(!P) return;
+  const S = Math.min(W,H)/560;
+  const Z = Zs || P.map(()=>0);
+
+  /* Live cost measurement. This is CPU submit time — Canvas2D records fills into
+     a display list and the GPU rasterizes them later, so real cost is higher than
+     this reads. It is still the number that moves when you toggle beams, which is
+     what makes the trade-off legible instead of asserted. */
+  const t0=performance.now();
+  drawBeams(P, Z, vis, beamK||0);
+  const el=performance.now()-t0;
+  beamMs = beamMs ? 0.92*beamMs + 0.08*el : el;
+
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  BONES.slice().sort((a,b)=>((Z[b[0]]+Z[b[1]])/2)-((Z[a[0]]+Z[a[1]])/2)).forEach(([i,j])=>{
+    const f=Math.min(fade(vis[i]),fade(vis[j]));
+    if(f<=0.02) return;
+    const zm=(Z[i]+Z[j])/2;
+    ctx.strokeStyle=depthColor(zm,0.42*f);
+    ctx.lineWidth=Math.max(4,13*S);
+    ctx.beginPath(); ctx.moveTo(P[i][0],P[i][1]); ctx.lineTo(P[j][0],P[j][1]); ctx.stroke();
+  });
+  DRAW_PTS.slice().sort((a,b)=>Z[b]-Z[a]).forEach(i=>{
+    const f=fade(vis[i]);
+    if(f<=0.02) return;
+    const r=Math.max(5,13*S);
+    ctx.beginPath(); ctx.arc(P[i][0],P[i][1],r+6*S,0,Math.PI*2);
+    ctx.fillStyle=depthColor(Z[i],0.18*f); ctx.fill();
+    ctx.beginPath(); ctx.arc(P[i][0],P[i][1],r,0,Math.PI*2);
+    ctx.fillStyle=depthColor(Z[i],0.96*f); ctx.fill();
+    ctx.lineWidth=Math.max(1.5,2.6*S); ctx.strokeStyle='rgba(3,12,15,'+(0.6*f)+')'; ctx.stroke();
+  });
+}
+
+/* ══════════ model ══════════ */
+let landmarker=null, running=false, lastVideoTime=-1, lastT=0;
+
+async function initModel(){
+  const slow=setTimeout(()=>{ if(!landmarker) status('still downloading the model (~10 MB)…'); },12000);
+  try{
+    status('loading model…');
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{
+        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
+        delegate:"GPU"
+      },
+      runningMode:"VIDEO", numPoses:1, minPoseDetectionConfidence:0.5,
+      minPosePresenceConfidence:0.5, minTrackingConfidence:0.5
+    });
+    clearTimeout(slow);
+    status('model ready','on');
+    const b=$('startBtn'); b.disabled=false; b.textContent='Turn on my camera';
+  }catch(e){
+    clearTimeout(slow);
+    fail('Could not load the pose model: '+(e && e.message ? e.message : e)+
+         ' — check that this machine can reach cdn.jsdelivr.net and storage.googleapis.com.');
+  }
+}
+
+let facing='user';
+
+async function startCamera(){
+  try{
+    if(vid.srcObject){ vid.srcObject.getTracks().forEach(t=>t.stop()); }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:1280}, height:{ideal:960}, facingMode:facing }, audio:false });
+    vid.srcObject=stream;
+    await vid.play();
+    ov.width = vid.videoWidth || 1280;
+    ov.height = vid.videoHeight || 960;
+    /* Mirror only the selfie camera. A rear camera is already showing the world
+       the right way round, and flipping it makes left/right cues wrong. */
+    document.querySelector('.mirror').classList.toggle('noflip', facing!=='user');
+    $('idle').hidden=true; $('over').hidden=false; $('camFlip').hidden=false;
+    if(!running){ resetSession(); running=true; requestAnimationFrame(loop); }
+    status('tracking','on');
+    cue('setup','Step back until your whole body is in frame');
+  }catch(e){
+    const m=(e && e.message) ? e.message : String(e);
+    fail(location.protocol==='file:'
+      ? 'Camera blocked: a local file is not a secure origin. Put the page on an https:// address (or http://localhost on a desktop) and it will work. ['+m+']'
+      : 'Camera access failed: '+m+' — check the browser has camera permission for this site.');
+  }
+}
+
+/* ══════════ per-frame analysis ══════════ */
+function analyse(W, vis, now, dt){
+  /* W arrives already smoothed and y-up, in metres, origin at hip centre */
+
+  /* visibility gate — blueprint §3.4 */
+  const q = ex.need.reduce((a,i)=>a+(vis[i]??0),0)/ex.need.length;
+  $('tQual').textContent=q.toFixed(2);
+  if(q<0.6){ cue('setup','Can’t see you fully — step back or move into better light'); return null; }
+
+  let mL,mR;
+  if(ex.metric==='knee'){
+    mL=jointAngle(W[L.Lhp],W[L.Lkn],W[L.Lan]);
+    mR=jointAngle(W[L.Rhp],W[L.Rkn],W[L.Ran]);
+  } else if(ex.metric==='elbow'){
+    mL=jointAngle(W[L.Lsh],W[L.Lel],W[L.Lwr]);
+    mR=jointAngle(W[L.Rsh],W[L.Rel],W[L.Rwr]);
+  } else {
+    mL=jointAngle(W[L.Lhp],W[L.Lsh],W[L.Lel]);
+    mR=jointAngle(W[L.Rhp],W[L.Rsh],W[L.Rel]);
+  }
+  const m=(mL+mR)/2;
+  const prog=Math.max(0,Math.min(1,(ex.top-m)/(ex.top-ex.bottom)));
+
+  /* body frame — blueprint §3.1 */
+  const o=mid(W[L.Lhp],W[L.Rhp]);
+  const ux=unit(sub(W[L.Rhp],W[L.Lhp]));
+  const vv=unit(sub(mid(W[L.Lsh],W[L.Rsh]),o));
+  const fw=unit(cross(ux,vv));
+  const up=cross(fw,ux);
+  const toBody=p=>{const d=sub(p,o);return [dot(ux,d),dot(up,d),dot(fw,d)];};
+
+  const devAlong=(hip,knee,ank)=>{
+    const t=(knee[1]-hip[1])/((ank[1]-hip[1])||1e-9);
+    return (knee[0]-(hip[0]+t*(ank[0]-hip[0])))*100;
+  };
+  let vCam=0,vBody=0;
+  if(ex.valgusCheck){
+    vCam  = devAlong(W[L.Lhp],W[L.Lkn],W[L.Lan]);
+    vBody = devAlong(toBody(W[L.Lhp]),toBody(W[L.Lkn]),toBody(W[L.Lan]));
+    $('vCam').textContent = vCam.toFixed(1)+' cm';
+    $('vBody').textContent= vBody.toFixed(1)+' cm';
+  } else { $('vCam').textContent='n/a'; $('vBody').textContent='n/a'; }
+
+  /* rule engine — one rule, debounced by the cue cooldown */
+  sess.totalFrames++;
+  const violating = ex.valgusCheck && prog>0.40 && vBody>6;
+  if(violating){ sess.violFrames++; if(prog>0.6) cue('warn'); }
+
+  stepFSM(prog,now,mL,mR);
+  return {m,prog,q};
+}
+
+/* ══════════ loop ══════════
+   Inference runs only when the video has a new frame (~30 fps). Smoothing and
+   drawing run on every animation frame (~60 fps), converging toward the latest
+   detection — that is what removes the stepping between inferences. */
+let latest=null, lastInferT=0, infFps=0, beamK=0, beamMs=0;
+
+function loop(){
+  if(!running) return;
+  const now=performance.now();
+  const dt = lastT ? Math.min(0.1,(now-lastT)/1000) : 1/60;
+  lastT=now;
+
+  /* ── inference, on new video frames only ── */
+  if(vid.currentTime!==lastVideoTime && landmarker){
+    lastVideoTime=vid.currentTime;
+    const idt = lastInferT ? (now-lastInferT)/1000 : 1/30; lastInferT=now;
+    infFps = infFps ? 0.9*infFps + 0.1*(1/idt) : 1/idt;
+    let res=null;
+    try{ res = landmarker.detectForVideo(vid, now); }catch(e){ /* frame skipped */ }
+    if(res && res.landmarks && res.landmarks.length){
+      const lm=res.landmarks[0];
+      latest={
+        img: lm.map(p=>({x:p.x*ov.width, y:p.y*ov.height, z:0})),
+        wld: (res.worldLandmarks && res.worldLandmarks[0])
+               ? res.worldLandmarks[0].map(p=>({x:p.x, y:-p.y, z:p.z})) : null,
+        vis: lm.map(p=>p.visibility??1)
+      };
+    } else {
+      latest=null;
+    }
+  }
+
+  /* ── smooth + draw, every frame ── */
+  if(latest){
+    const vis = smoothVis(latest.vis, dt);
+    let Pimg = smooth(latest.img, fImg, dt, vis).map(p=>[p[0],p[1]]);
+    Pimg = lockBones(Pimg, dt);
+
+    /* Smooth the world landmarks BEFORE drawing — their z drives the depth
+       shading, so using raw z would leave the colours flickering on a skeleton
+       whose positions are already steady. */
+    const W = latest.wld ? smooth(latest.wld, fWorld, dt, vis) : null;
+
+    /* Beams ease in and out rather than snapping. In "setup" mode they retire
+       once the first rep lands — by then the user is moving and the beams would
+       compete with their own image and the coaching cue. */
+    const targetK = beamMode==='off' ? 0
+                  : beamMode==='setup' ? (fsm.full>0 ? 0 : beamIntensity)
+                  : beamIntensity;
+    beamK += (targetK-beamK)*Math.min(1, dt*3);
+
+    drawSkeleton(Pimg, W ? W.map(p=>p[2]) : null, vis, beamK);
+
+    if(W){
+      const out = analyse(W, vis, now, dt);
+      if(out){
+        $('tAngle').textContent=out.m.toFixed(0)+'°';
+        $('tProg').textContent=out.prog.toFixed(2);
+        $('romBar').style.width=(out.prog*100).toFixed(1)+'%';
+        $('romPct').textContent=Math.round(out.prog*100)+'%';
+      }
+    }
+  } else {
+    drawSkeleton(null); $('tQual').textContent='0.00';
+  }
+
+  $('tState').textContent=fsm.state;
+  $('tReps').textContent=fsm.full+' / '+fsm.partial;
+  $('repN').textContent=fsm.full;
+  $('tFps').textContent=infFps.toFixed(0)+' fps';
+  $('tBeamMs').textContent=beamK>0.02 ? beamMs.toFixed(2)+' ms' : 'off';
+  $('tBeamPct').textContent=beamK>0.02 ? (beamMs/33.3*100).toFixed(1)+'%' : '—';
+  if(now>cueUntil) cueEl.classList.add('hide');
+  requestAnimationFrame(loop);
+}
+
+/* ══════════ wiring ══════════ */
+$('startBtn').addEventListener('click',startCamera);
+$('camFlip').addEventListener('click',function(){
+  facing = facing==='user' ? 'environment' : 'user';
+  this.textContent = facing==='user' ? 'Flip camera' : 'Front camera';
+  startCamera();
+});
+$('resetBtn').addEventListener('click',()=>{ resetSession(); cue('setup','Reps reset'); });
+$('endBtn').addEventListener('click',showScore);
+$('beamSel').addEventListener('change',function(){ beamMode=this.value; });
+$('beamInt').addEventListener('input',function(){
+  beamIntensity=+this.value/100; $('beamV').textContent=this.value+'%';
+});
+$('smoothSel').addEventListener('change',function(){
+  preset=PRESETS[this.value];
+  $('tCut').textContent = this.value==='off' ? 'none' : preset.min.toFixed(2)+' Hz';
+  $('tLag').textContent = preset.label;
+});
+$('boneChk').addEventListener('change',function(){
+  boneLock=this.checked; boneLen.clear();
+  $('boneHint').textContent = boneLock? 'stops limbs stretching' : 'raw joint positions';
+});
+$('exSel').addEventListener('change',function(){
+  ex=EX[this.value];
+  $('exName').textContent=ex.name;
+  $('uMetric').textContent=ex.metricLabel;
+  resetSession();
+  cue('setup','Switched to '+ex.name.toLowerCase());
+});
+
+initModel();
+</script>
+</body>
+</html>

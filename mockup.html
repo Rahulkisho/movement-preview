@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movement — App Mockup</title>
+<style>:root{color-scheme:light dark}html,body{margin:0}body{font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#EDF2F3; --surface:#FFFFFF; --surface-2:#E7EEF0; --surface-3:#F4F8F9;
+  --ink:#0C1E25; --ink-muted:#587380; --ink-faint:#8AA3AD; --line:#D9E3E6;
+  --accent:#0E9FB4; --accent-soft:#D6EFF3; --accent-ink:#076477;
+  --depth-far:#7666E8;
+  --good:#2C9B68; --good-soft:#E3F4EC; --warn:#C9862A; --warn-soft:#FBF0DE; --crit:#CE4F3C;
+  --inst:#071519; --inst-2:#0C242C; --inst-line:#15404C;
+  --inst-ink:#CDE5EA; --inst-muted:#6B939F;
+  --font-display:'Archivo',ui-sans-serif,system-ui,sans-serif;
+  --font-body:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#040F13; --surface:#0C1F26; --surface-2:#122D36; --surface-3:#0A1A20;
+    --ink:#DFEDF0; --ink-muted:#7FA0AC; --ink-faint:#5C7C88; --line:#1A3B45;
+    --accent:#2CC0D4; --accent-soft:#0A3540; --accent-ink:#9FE2EC;
+    --good-soft:#0A2E22; --warn-soft:#2E2308;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#040F13; --surface:#0C1F26; --surface-2:#122D36; --surface-3:#0A1A20;
+  --ink:#DFEDF0; --ink-muted:#7FA0AC; --ink-faint:#5C7C88; --line:#1A3B45;
+  --accent:#2CC0D4; --accent-soft:#0A3540; --accent-ink:#9FE2EC;
+  --good-soft:#0A2E22; --warn-soft:#2E2308;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:-0.02em;text-wrap:balance}
+p{margin:0}
+button{font:inherit;font-family:var(--font-body);cursor:pointer}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.page{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0}
+header.top{border-bottom:1px solid var(--line);background:var(--surface)}
+.top-in{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-block:13px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand b{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.03em}
+.brand span{font-family:var(--font-mono);font-size:10.5px;color:var(--accent-ink);background:var(--accent-soft);padding:2px 7px;border-radius:4px;letter-spacing:.06em}
+.top-in p{font-size:12.5px;color:var(--ink-muted)}
+
+.lab{display:grid;grid-template-columns:210px minmax(0,auto) 268px;gap:26px;align-items:start;padding-block:28px 44px;justify-content:center}
+
+/* screen rail */
+.rail{display:flex;flex-direction:column;gap:2px;position:sticky;top:18px}
+.rail h3{font-size:11px;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px;font-weight:500}
+.rail button{
+  display:flex;align-items:center;gap:10px;text-align:left;width:100%;
+  background:none;border:0;border-radius:8px;padding:9px 10px;color:var(--ink-muted);font-size:13.5px;
+}
+.rail button:hover{background:var(--surface-2)}
+.rail button[aria-current="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(12,30,37,.06)}
+.rail button i{font-style:normal;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-faint);width:16px;flex:none}
+.rail button[aria-current="true"] i{color:var(--accent)}
+.rail .dark{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--inst);opacity:.45}
+
+/* device */
+.device{
+  width:392px;background:#051216;border-radius:46px;padding:11px;
+  box-shadow:0 22px 50px -18px rgba(4,22,28,.5),0 0 0 1px rgba(255,255,255,.06) inset;
+  justify-self:center;
+}
+.screen{
+  position:relative;width:370px;height:770px;border-radius:36px;overflow:hidden;
+  background:var(--surface-3);display:flex;flex-direction:column;
+}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:96px;height:22px;border-radius:12px;background:#051216;z-index:40}
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:13px 22px 4px;font-family:var(--font-mono);font-size:11px;flex:none;z-index:30;position:relative}
+.statusbar .r{display:flex;gap:4px;align-items:center}
+.statusbar .r b{display:block;width:15px;height:8px;border-radius:2px;border:1px solid currentColor;opacity:.7}
+.view{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--surface-3)}
+.view.dark{background:var(--inst);color:var(--inst-ink)}
+.view.dark .statusbar{color:var(--inst-ink)}
+.vbody{flex:1;overflow-y:auto;padding:4px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.vbody.flush{padding:0}
+.vfoot{flex:none;padding:12px 18px 22px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(to top,var(--surface-3) 72%,transparent)}
+.view.dark .vfoot{background:linear-gradient(to top,var(--inst) 72%,transparent)}
+
+.cta{width:100%;padding:14px;border-radius:13px;border:0;background:var(--accent);color:#fff;font-weight:600;font-size:15px}
+.cta.ghost{background:transparent;color:var(--ink-muted);border:1px solid var(--line)}
+.view.dark .cta.ghost{color:var(--inst-muted);border-color:var(--inst-line)}
+.cta:disabled{opacity:.4}
+
+.vhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-top:8px}
+.vhead h2{font-size:25px;font-weight:700}
+.vhead p{font-size:12.5px;color:var(--ink-muted);margin-top:3px}
+.back{background:none;border:0;color:var(--ink-muted);font-size:19px;padding:0 6px 0 0;line-height:1}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px}
+.card.tight{padding:13px}
+
+/* hub */
+.scorerow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.scorerow .big{font-family:var(--font-mono);font-size:40px;font-weight:600;line-height:.9;letter-spacing:-.03em}
+.chip{font-family:var(--font-mono);font-size:11px;padding:3px 8px;border-radius:5px;background:var(--good-soft);color:var(--good)}
+.spark{margin-top:12px}
+.today{background:linear-gradient(135deg,var(--accent),#0A7F93);color:#fff;border:0}
+.today .eyebrow{color:rgba(255,255,255,.72)}
+.today h3{font-size:17px;font-weight:600;margin-top:5px}
+.today .meta{display:flex;gap:14px;margin-top:9px;font-family:var(--font-mono);font-size:11.5px;color:rgba(255,255,255,.85)}
+.today button{margin-top:13px;width:100%;padding:11px;border-radius:10px;border:0;background:#fff;color:var(--accent-ink);font-weight:600;font-size:14px}
+.pillars{display:grid;gap:8px}
+.ptile{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ptile .bar{width:4px;height:34px;border-radius:2px;flex:none}
+.ptile b{display:block;font-size:14px;font-weight:600}
+.ptile span{display:block;font-size:11.5px;color:var(--ink-muted);margin-top:1px}
+.ptile em{margin-left:auto;font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint)}
+
+/* sliders */
+.slider{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 15px}
+.slider .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px}
+.slider .lab b{font-family:var(--font-mono);font-size:17px;font-weight:500}
+.slider input{width:100%;margin-top:9px;accent-color:var(--accent)}
+.slider .ends{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-faint);font-family:var(--font-mono);margin-top:1px}
+.alert{border-radius:12px;padding:13px 15px;font-size:13px;background:var(--warn-soft);border:1px solid rgba(201,134,42,.3);color:var(--ink)}
+.alert b{display:block;font-weight:600;margin-bottom:3px}
+
+/* framing + session canvas */
+.camwrap{position:relative;flex:1;min-height:0}
+.camwrap canvas{display:block;width:100%;height:100%;object-fit:cover}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:14px;pointer-events:none}
+.otop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tag{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(5,17,21,.7);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(4px)}
+.tag.on{color:#7EE0EE;border-color:#1C5B6B}
+.repbox{text-align:right}
+.repbox b{display:block;font-family:var(--font-mono);font-size:30px;font-weight:600;color:#fff;line-height:1}
+.repbox i{font-style:normal;font-family:var(--font-mono);font-size:10px;color:var(--inst-muted);letter-spacing:.08em}
+.cuebar{font-size:13px;font-weight:500;text-align:center;padding:11px;border-radius:11px;background:rgba(5,17,21,.85);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(5px);transition:opacity .2s,transform .2s}
+.cuebar[data-sev="warn"]{border-color:#7A5A1B;color:#F3C877;background:rgba(38,27,6,.9)}
+.cuebar[data-sev="good"]{border-color:#1D5C42;color:#84DDB4;background:rgba(6,29,21,.9)}
+.cuebar.hide{opacity:0;transform:translateY(5px)}
+.rom{margin-top:11px}
+.romtrack{position:relative;height:15px;border-radius:8px;overflow:hidden;
+  background:rgba(4,16,20,.82);border:1px solid rgba(28,91,107,.95);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.romtrack i{display:block;height:100%;width:0%;border-radius:7px;
+  background:linear-gradient(90deg,#7666E8 0%,#2CC0D4 58%,#8FEAF7 100%);
+  box-shadow:0 0 16px rgba(44,192,212,.6), inset 0 1px 0 rgba(255,255,255,.35)}
+.romtrack .tick{position:absolute;top:0;bottom:0;width:2px;background:rgba(205,229,234,.38)}
+.romtrack .tick.full{background:rgba(132,221,180,.8)}
+.romfoot{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;
+  font-family:var(--font-mono);font-size:8.5px;letter-spacing:.09em;color:var(--inst-muted);
+  text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.romfoot b{font-size:12px;color:#DCF1F5;font-weight:600;font-variant-numeric:tabular-nums}
+.sessbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px 20px;flex:none;border-top:1px solid var(--inst-line);font-family:var(--font-mono);font-size:11.5px;color:var(--inst-muted)}
+.sessbar button{background:none;border:1px solid var(--inst-line);color:var(--inst-ink);border-radius:8px;padding:6px 12px;font-size:12px;font-family:var(--font-body)}
+.checks{position:absolute;left:14px;right:14px;bottom:14px;display:grid;gap:6px}
+.chk{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:9px 12px;border-radius:10px;background:rgba(5,17,21,.8);border:1px solid var(--inst-line);color:var(--inst-muted);backdrop-filter:blur(4px)}
+.chk b{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--inst-line);flex:none;display:grid;place-items:center;font-size:10px;color:transparent}
+.chk.ok{color:var(--inst-ink)} .chk.ok b{background:var(--good);border-color:var(--good);color:#fff}
+
+/* rest */
+.restwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px}
+.ring{position:relative;width:168px;height:168px}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-size:42px;font-weight:600;color:var(--inst-ink)}
+.restsum{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--inst-line);border:1px solid var(--inst-line);border-radius:11px;overflow:hidden;margin-top:22px}
+.restsum div{background:var(--inst);padding:11px 8px;text-align:center}
+.restsum u{display:block;text-decoration:none;font-family:var(--font-mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--inst-muted)}
+.restsum b{display:block;font-family:var(--font-mono);font-size:19px;font-weight:500;margin-top:3px}
+
+/* report */
+.bars{display:grid;gap:10px;margin-top:14px}
+.brow{display:grid;grid-template-columns:74px 28px 1fr 30px;align-items:center;gap:8px;font-size:12.5px}
+.brow u{text-decoration:none;color:var(--ink-muted)}
+.brow .wt{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-faint)}
+.brow .tk{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.brow .tk i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .5s ease}
+.brow b{font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-align:right}
+.calicard{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.calicard header{display:flex;align-items:center;gap:9px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:11px;flex:none}
+.calicard header b{font-size:13px;font-weight:600}
+.calicard header span{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-muted)}
+.calicard .in{padding:14px;display:grid;gap:11px}
+.calicard h4{font-size:14.5px;font-weight:600}
+.calicard p{font-size:13px;color:var(--ink-muted)}
+.ins{border-left:3px solid var(--accent);background:var(--accent-soft);padding:11px 13px;border-radius:0 9px 9px 0}
+.ins u{display:block;text-decoration:none;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink)}
+.ins p{color:var(--ink);font-size:13px;margin-top:5px}
+.iss{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:9px 11px;border:1px solid var(--line);border-radius:9px}
+.iss .sw{width:3px;height:20px;border-radius:2px;flex:none;background:var(--warn)}
+.iss .g{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-muted)}
+
+/* demo controls */
+.panel{position:sticky;top:18px;display:grid;gap:12px}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px}
+.pcard h3{font-size:12.5px;font-weight:600;margin-bottom:3px}
+.pcard > p{font-size:12px;color:var(--ink-muted)}
+.field{margin-top:12px}
+.field > label{display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px}
+.segs{display:flex;background:var(--surface-2);border-radius:9px;padding:3px;gap:3px}
+.segs button{flex:1;font-size:12px;padding:6px 4px;border-radius:6px;border:0;background:transparent;color:var(--ink-muted)}
+.segs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(12,30,37,.08)}
+.rangerow{display:flex;align-items:center;gap:9px}
+.rangerow input{flex:1;accent-color:var(--accent);min-width:0}
+.rangerow b{font-family:var(--font-mono);font-size:12px;min-width:38px;text-align:right;font-weight:500}
+.tog{width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;color:var(--ink)}
+.tog .sw{width:30px;height:18px;border-radius:9px;background:var(--surface-2);position:relative;flex:none;transition:background .18s}
+.tog .sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .18s}
+.tog[aria-pressed="true"] .sw{background:var(--warn)}
+.tog.on[aria-pressed="true"] .sw{background:var(--accent)}
+.tog[aria-pressed="true"] .sw::after{transform:translateX(12px)}
+.telegrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:11px}
+.telegrid div{background:var(--surface);padding:9px 10px}
+.telegrid u{display:block;text-decoration:none;font-family:var(--font-mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-muted)}
+.telegrid b{display:block;font-family:var(--font-mono);font-size:16px;font-weight:500;margin-top:2px}
+.note{font-size:11.5px;color:var(--ink-muted);line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+
+@media (max-width:1080px){
+  .lab{grid-template-columns:minmax(0,392px);justify-content:center;gap:20px}
+  .rail{position:static;flex-direction:row;flex-wrap:wrap;gap:6px}
+  .rail h3{width:100%;margin-bottom:2px}
+  .rail button{width:auto;padding:7px 11px;border:1px solid var(--line);background:var(--surface)}
+  .rail button i{display:none}
+  .rail .dark{display:none}
+  .panel{position:static}
+}
+@media (max-width:430px){
+  .device{width:100%;padding:8px;border-radius:34px}
+  .screen{width:100%;height:74vh;min-height:560px;border-radius:28px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="page top-in">
+    <div class="brand"><b>MyCalAgent</b><span>MOVEMENT · CLICKABLE MOCKUP</span></div>
+    <p>Tap through the flow. Demo controls change what the engine sees.</p>
+  </div>
+</header>
+
+<div class="page lab">
+
+  <nav class="rail" id="rail">
+    <h3>Screens</h3>
+    <button type="button" data-go="hub" aria-current="true"><i>01</i>Movement hub</button>
+    <button type="button" data-go="checkin"><i>02</i>Check-in</button>
+    <button type="button" data-go="framing"><i>03</i>Framing<span class="dark"></span></button>
+    <button type="button" data-go="session"><i>04</i>Live session<span class="dark"></span></button>
+    <button type="button" data-go="rest"><i>05</i>Rest<span class="dark"></span></button>
+    <button type="button" data-go="report"><i>06</i>Report</button>
+  </nav>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="notch"></div>
+
+      <!-- 01 HUB -->
+      <section class="view" id="v-hub">
+        <div class="statusbar"><span>7:42</span><span class="r">5G<b></b></span></div>
+        <div class="vbody">
+          <div class="vhead"><div><h2>Movement</h2><p>Tuesday · Week 2 of 8</p></div></div>
+
+          <div class="card">
+            <div class="scorerow">
+              <div><p class="eyebrow">MoveScore</p><div class="big" id="hubScore">78</div></div>
+              <span class="chip">▲ 4 this week</span>
+            </div>
+            <svg class="spark" viewBox="0 0 300 60" width="100%" height="60" role="img" aria-label="MoveScore trend rising from 68 to 78 over eight sessions">
+              <polyline points="6,40 48,43 90,34 132,36 174,27 216,24 258,19 294,13" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="294" cy="13" r="4.5" fill="var(--accent)"/>
+              <text x="6" y="53" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-faint)">8 sessions ago</text>
+              <text x="294" y="53" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-faint)">today</text>
+            </svg>
+          </div>
+
+          <div class="card today">
+            <p class="eyebrow">Today · Workout</p>
+            <h3>Lower body · squat pattern</h3>
+            <div class="meta"><span>14 MIN</span><span>3 SETS</span><span>4 MOVES</span></div>
+            <button type="button" data-go="checkin">Start session</button>
+          </div>
+
+          <div class="pillars">
+            <div class="ptile"><span class="bar" style="background:var(--accent)"></span><div><b>Mobility</b><span>Desk reset · 8 min</span></div><em>WK 3</em></div>
+            <div class="ptile"><span class="bar" style="background:var(--depth-far)"></span><div><b>Workouts</b><span>Lower body · today</span></div><em>WK 2</em></div>
+            <div class="ptile"><span class="bar" style="background:var(--line)"></span><div><b>Joint Care</b><span>Knee · not started</span></div><em>—</em></div>
+          </div>
+
+          <div class="card tight" style="display:flex;align-items:center;gap:11px">
+            <span style="font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--accent)">11</span>
+            <div><b style="font-size:13px">day streak</b><p style="font-size:11.5px;color:var(--ink-muted)">Best run since you started</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 CHECK-IN -->
+      <section class="view" id="v-checkin" hidden>
+        <div class="statusbar"><span>7:42</span><span class="r">5G<b></b></span></div>
+        <div class="vbody">
+          <div class="vhead"><button class="back" type="button" data-go="hub" aria-label="Back">‹</button><div style="flex:1"><h2>Before we start</h2><p>Takes 10 seconds. It shapes today's session.</p></div></div>
+
+          <div class="slider">
+            <div class="lab"><span>Pain right now</span><b id="lPain">2</b></div>
+            <input type="range" id="sPain" min="0" max="10" value="2" step="1">
+            <div class="ends"><span>NONE</span><span>SEVERE</span></div>
+          </div>
+          <div class="slider">
+            <div class="lab"><span>Stiffness</span><b id="lStiff">4</b></div>
+            <input type="range" id="sStiff" min="0" max="10" value="4" step="1">
+            <div class="ends"><span>LOOSE</span><span>LOCKED UP</span></div>
+          </div>
+          <div class="slider">
+            <div class="lab"><span>Energy</span><b id="lEnergy">7</b></div>
+            <input type="range" id="sEnergy" min="0" max="10" value="7" step="1">
+            <div class="ends"><span>EMPTY</span><span>FULL</span></div>
+          </div>
+
+          <div class="alert" id="painAlert" hidden>
+            <b>Let's go easier today.</b>
+            At a 7 or above I'll swap in the seated variation and drop the third set. You can override this.
+          </div>
+
+          <p class="note" style="margin-top:2px">Your answers feed ComfortIndex — tracked alongside MoveScore, never blended into it.</p>
+        </div>
+        <div class="vfoot"><button class="cta" type="button" data-go="framing" id="ctaCheckin">Continue</button></div>
+      </section>
+
+      <!-- 03 FRAMING -->
+      <section class="view dark" id="v-framing" hidden>
+        <div class="statusbar"><span>7:43</span><span class="r">5G<b></b></span></div>
+        <div class="camwrap">
+          <canvas id="cvFrame" width="740" height="1320" aria-label="Camera framing preview with tracked skeleton"></canvas>
+          <div class="overlay">
+            <div class="otop">
+              <span class="tag">SETTING UP</span>
+              <span class="tag" id="frameQual">TRACKING 0.00</span>
+            </div>
+          </div>
+          <div class="checks" id="checkList">
+            <div class="chk" data-i="0"><b>✓</b>Full body in frame</div>
+            <div class="chk" data-i="1"><b>✓</b>Lighting is good enough</div>
+            <div class="chk" data-i="2"><b>✓</b>Phone is stable</div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <button class="cta" type="button" data-go="session" id="ctaFraming" disabled>Checking your setup…</button>
+          <button class="cta ghost" type="button" data-go="checkin">Back</button>
+        </div>
+      </section>
+
+      <!-- 04 SESSION -->
+      <section class="view dark" id="v-session" hidden>
+        <div class="statusbar"><span>7:44</span><span class="r">5G<b></b></span></div>
+        <div class="camwrap">
+          <canvas id="cvSess" width="740" height="1320" aria-label="Live session with tracked skeleton"></canvas>
+          <div class="overlay">
+            <div class="otop">
+              <span class="tag on" id="sessName">BODYWEIGHT SQUAT</span>
+              <span class="repbox"><b id="sessReps">0</b><i id="sessTarget">OF 6</i></span>
+            </div>
+            <div>
+              <div class="cuebar hide" id="sessCue" data-sev="good">Nice depth — hold that tempo</div>
+              <div class="rom">
+                <div class="romtrack">
+                  <i id="sessRom"></i>
+                  <span class="tick" style="left:15%"></span>
+                  <span class="tick full" style="left:85%"></span>
+                </div>
+                <div class="romfoot"><span>REP COUNTS</span><b id="sessPct">0%</b><span>FULL DEPTH</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sessbar">
+          <span id="sessSet">SET 1 / 3</span>
+          <span id="sessTime">00:00</span>
+          <button type="button" data-go="rest">End set</button>
+        </div>
+      </section>
+
+      <!-- 05 REST -->
+      <section class="view dark" id="v-rest" hidden>
+        <div class="statusbar"><span>7:45</span><span class="r">5G<b></b></span></div>
+        <div class="restwrap">
+          <p class="eyebrow" style="color:var(--inst-muted)">Set 1 complete · rest</p>
+          <div class="ring">
+            <svg viewBox="0 0 168 168" width="168" height="168">
+              <circle cx="84" cy="84" r="76" fill="none" stroke="#11313B" stroke-width="9"/>
+              <circle cx="84" cy="84" r="76" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round"
+                      stroke-dasharray="477.5" stroke-dashoffset="0" id="restArc"/>
+            </svg>
+            <div class="num" id="restNum">45</div>
+          </div>
+          <div class="restsum">
+            <div><u>Reps</u><b id="restReps">6</b></div>
+            <div><u>Avg depth</u><b id="restDepth">88°</b></div>
+            <div><u>Cues</u><b id="restCues">1</b></div>
+          </div>
+          <p style="font-size:12.5px;color:var(--inst-muted);margin-top:16px;text-align:center;max-width:26ch">
+            Next up: same movement, same target. Keep the knees tracking over your toes.
+          </p>
+        </div>
+        <div class="vfoot">
+          <button class="cta" type="button" data-go="session" id="ctaNextSet">Start set 2</button>
+          <button class="cta ghost" type="button" data-go="report">End session</button>
+        </div>
+      </section>
+
+      <!-- 06 REPORT -->
+      <section class="view" id="v-report" hidden>
+        <div class="statusbar"><span>7:58</span><span class="r">5G<b></b></span></div>
+        <div class="vbody">
+          <div class="vhead"><div><h2>Session report</h2><p id="repMeta">Workout · 14 min · 36 reps</p></div></div>
+
+          <div class="card">
+            <div class="scorerow">
+              <div><p class="eyebrow">MoveScore</p><div class="big" id="repScore">78</div></div>
+              <span class="chip" id="repDelta">▲ 4 vs last</span>
+            </div>
+            <div class="bars">
+              <div class="brow"><u>Range</u><span class="wt">40%</span><div class="tk"><i id="bRange" style="width:82%"></i></div><b id="nRange">82</b></div>
+              <div class="brow"><u>Control</u><span class="wt">25%</span><div class="tk"><i id="bControl" style="width:71%;background:var(--warn)"></i></div><b id="nControl">71</b></div>
+              <div class="brow"><u>Symmetry</u><span class="wt">20%</span><div class="tk"><i id="bSym" style="width:88%"></i></div><b id="nSym">88</b></div>
+              <div class="brow"><u>Endurance</u><span class="wt">15%</span><div class="tk"><i id="bEnd" style="width:74%"></i></div><b id="nEnd">74</b></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+              <span style="font-size:12.5px;color:var(--ink-muted)">ComfortIndex · self-reported</span>
+              <b class="mono" style="font-size:18px;font-weight:500" id="repComfort">64</b>
+            </div>
+          </div>
+
+          <div class="calicard">
+            <header><span class="av">C</span><b>Cali</b><span id="repCount">36 reps</span></header>
+            <div class="in">
+              <h4 id="repHeadline">Your depth held all the way to the last set — that's new.</h4>
+              <p id="repBody">Endurance is the sub-score that usually slips first, and yours only dropped 6 points between the opening and closing thirds.</p>
+              <div class="iss"><span class="sw"></span>Knees drifting inward<span class="g" id="repIssue">7 of 36 · improving</span></div>
+              <div class="ins">
+                <u>Cross-pillar pattern · 14 sessions</u>
+                <p>Your squat depth averages 11° shallower on days you finish under 1.6 L of water. Your four best Range scores all followed days you hit the hydration target.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot"><button class="cta" type="button" data-go="hub">Done</button></div>
+      </section>
+
+    </div>
+  </div>
+
+  <aside class="panel">
+    <div class="pcard">
+      <h3>Demo controls</h3>
+      <p>Outside the app — these change what the engine is fed, so you can see how the screens respond.</p>
+
+      <div class="field">
+        <label id="lblSess">Session type</label>
+        <div class="segs" role="group" aria-labelledby="lblSess" id="segPillar">
+          <button type="button" data-p="mobility" aria-pressed="false">Mobility</button>
+          <button type="button" data-p="workout" aria-pressed="true">Workout</button>
+          <button type="button" data-p="joint" aria-pressed="false">Joint</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="yaw">Yaw to camera</label>
+        <div class="rangerow"><input type="range" id="yaw" min="0" max="75" value="12" step="1"><b id="yawV">12°</b></div>
+      </div>
+
+      <div class="field">
+        <label for="speed">Tempo</label>
+        <div class="rangerow"><input type="range" id="speed" min="60" max="180" value="100" step="5"><b id="speedV">1.0×</b></div>
+      </div>
+
+      <div class="field">
+        <button class="tog" type="button" id="togValgus" aria-pressed="false"><span class="sw"></span>Simulate knee valgus</button>
+      </div>
+
+      <div class="field">
+        <button class="tog on" type="button" id="togBeams" aria-pressed="false"><span class="sw"></span>Tracking beams in session</button>
+        <p class="note" style="margin-top:7px">Always on during <b>Framing</b>. This toggle is the user setting for the live set — shipped default off.</p>
+      </div>
+    </div>
+
+    <div class="pcard">
+      <h3>Live engine readout</h3>
+      <p>Computed each frame from the skeleton — the same formulas the native module will run.</p>
+      <div class="telegrid">
+        <div><u>Knee flexion</u><b id="tKnee">172°</b></div>
+        <div><u>Rep progress</u><b id="tProg">0.00</b></div>
+        <div><u>FSM state</u><b id="tState" style="font-size:12px">READY</b></div>
+        <div><u>Full / partial</u><b id="tReps">0 / 0</b></div>
+      </div>
+    </div>
+
+    <div class="pcard">
+      <p class="note"><b>The report is real.</b> MoveScore on screen 06 is computed from the reps you actually let run in screen 04 — range, form violations, left/right balance and decay across the set. Turn on the valgus fault and watch Control drop.</p>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- vector math (blueprint §3.2) ---------- */
+  function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+  function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+  function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+  function norm(a){return Math.sqrt(dot(a,a));}
+  function jointAngle(A,B,C){var u=sub(A,B),w=sub(C,B);
+    return Math.atan2(norm(cross(u,w)),dot(u,w))*180/Math.PI;}
+
+  /* ---------- mover ---------- */
+  var PILLARS={
+    mobility:{name:'SIT-TO-STAND',depth:0.86,period:4200,target:8,sets:2,label:'Mobility'},
+    workout :{name:'BODYWEIGHT SQUAT',depth:1.00,period:3000,target:6,sets:3,label:'Workout'},
+    joint   :{name:'KNEE CARE · MINI SQUAT',depth:0.58,period:3600,target:10,sets:2,label:'Joint Care'}
+  };
+  var pillar='workout', yaw=12, valgus=false, speed=1.0;
+  /* Tracking beams are always on during setup — that screen's whole job is
+     "the camera has found you". In the live set they are a user setting,
+     default off, so nothing sits between the user and their own form. */
+  var beamsInSession=false;
+
+  function pose(p,vg){
+    function L(a,b){return a+(b-a)*p;}
+    var hipX=0.13,hipY=L(0.95,0.58),hipZ=L(0,-0.07);
+    var knX=L(0.14,0.17),knY=L(0.50,0.47),knZ=L(0.03,0.17);
+    var anX=0.14,anY=0.08;
+    var lean=L(6,36)*Math.PI/180;
+    var shX=0.19,shY=hipY+0.50*Math.cos(lean),shZ=hipZ+0.50*Math.sin(lean);
+    var hdY=shY+0.21*Math.cos(lean),hdZ=shZ+0.21*Math.sin(lean);
+    var elX=L(0.22,0.20),elY=shY+L(-0.26,-0.20),elZ=shZ+L(0.05,0.14);
+    var wrX=L(0.20,0.06),wrY=shY+L(-0.50,-0.30),wrZ=shZ+L(0.12,0.34);
+    var v=(vg?0.085:0)*p;
+    return {hd:[0,hdY,hdZ],
+      Lsh:[-shX,shY,shZ],Rsh:[shX,shY,shZ],
+      Lel:[-elX,elY,elZ],Rel:[elX,elY,elZ],
+      Lwr:[-wrX,wrY,wrZ],Rwr:[wrX,wrY,wrZ],
+      Lhp:[-hipX,hipY,hipZ],Rhp:[hipX,hipY,hipZ],
+      Lkn:[-(knX-v),knY,knZ],Rkn:[knX,knY,knZ],
+      Lan:[-anX,anY,0],Ran:[anX,anY,0],
+      Lft:[-anX,0.02,0.18],Rft:[anX,0.02,0.18]};
+  }
+  var BONES=[['hd','Lsh'],['hd','Rsh'],['Lsh','Rsh'],['Lsh','Lel'],['Lel','Lwr'],
+    ['Rsh','Rel'],['Rel','Rwr'],['Lsh','Lhp'],['Rsh','Rhp'],['Lhp','Rhp'],
+    ['Lhp','Lkn'],['Lkn','Lan'],['Lan','Lft'],['Rhp','Rkn'],['Rkn','Ran'],['Ran','Rft']];
+
+  function rotY(p,r){var c=Math.cos(r),s=Math.sin(r);return [c*p[0]+s*p[2],p[1],-s*p[0]+c*p[2]];}
+  function depthColor(z,a){
+    var t=Math.max(0,Math.min(1,(z+0.30)/0.62));
+    return 'rgba('+Math.round(118+(44-118)*t)+','+Math.round(102+(192-102)*t)+','+Math.round(232+(212-232)*t)+','+a+')';
+  }
+  function render(cv,P,dim,beams){
+    var ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    var bg=ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#08191F');bg.addColorStop(.62,'#061318');bg.addColorStop(1,'#03090C');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(26,74,88,.5)';ctx.lineWidth=1.6;
+    var gy=H*0.79;
+    for(var i=0;i<=6;i++){var y=gy+i*0.24*H*0.40*0.44;if(y>H)break;
+      ctx.globalAlpha=.7-i*.1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();
+    ctx.ellipse(W/2,gy+10,W*0.20,H*0.011,0,0,Math.PI*2);ctx.fill();
+
+    var R={},k;for(k in P)R[k]=rotY(P[k],yaw*Math.PI/180);
+    var S={};for(k in R){var pt=R[k],f=3.2,kk=f/(f-pt[2]),sc=H*0.385;
+      S[k]={x:W/2+pt[0]*sc*kk,y:gy-pt[1]*sc*kk,z:pt[2]};}
+
+    /* Tracking beams — light cones from the device out to each joint, narrow and
+       bright at the emitter, widening and falling off toward the body. Colour
+       follows the depth palette so the effect encodes distance, not just mood.
+       Drawn under the skeleton, additively. */
+    if(beams){
+      ctx.save(); ctx.globalCompositeOperation='lighter';
+      var EX=W*0.50, EY=H*0.045;      /* top centre — where the lens actually is */
+      ['hd','Lsh','Rsh','Lel','Rel','Lwr','Rwr','Lhp','Rhp','Lkn','Rkn','Lan','Ran'].forEach(function(key){
+        var J=S[key]; if(!J) return;
+        var dx=J.x-EX, dy=J.y-EY, len=Math.sqrt(dx*dx+dy*dy); if(len<1) return;
+        var ux=dx/len, uy=dy/len, px=-uy, py=ux;
+        var w0=W*0.0035, w1=W*0.030;
+        var Ex=EX+ux*len*1.08, Ey=EY+uy*len*1.08;
+        var g=ctx.createLinearGradient(EX,EY,Ex,Ey);
+        g.addColorStop(0,   depthColor(J.z,0));
+        g.addColorStop(0.07,depthColor(J.z,0.34));
+        g.addColorStop(0.42,depthColor(J.z,0.15));
+        g.addColorStop(0.82,depthColor(J.z,0.05));
+        g.addColorStop(1,   depthColor(J.z,0));
+        ctx.fillStyle=g; ctx.beginPath();
+        ctx.moveTo(EX+px*w0,EY+py*w0); ctx.lineTo(Ex+px*w1,Ey+py*w1);
+        ctx.lineTo(Ex-px*w1,Ey-py*w1); ctx.lineTo(EX-px*w0,EY-py*w0);
+        ctx.closePath(); ctx.fill();
+      });
+      var br=W*0.12, bg2=ctx.createRadialGradient(EX,EY,0,EX,EY,br);
+      bg2.addColorStop(0,'rgba(170,245,255,.55)');
+      bg2.addColorStop(0.28,'rgba(70,200,222,.20)');
+      bg2.addColorStop(1,'rgba(70,200,222,0)');
+      ctx.fillStyle=bg2; ctx.beginPath(); ctx.arc(EX,EY,br,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.lineCap='round';
+    BONES.slice().sort(function(a,b){return ((S[a[0]].z+S[a[1]].z)/2)-((S[b[0]].z+S[b[1]].z)/2);})
+      .forEach(function(b){var A=S[b[0]],B=S[b[1]],zm=(A.z+B.z)/2;
+        ctx.strokeStyle=depthColor(zm,dim?0.22:0.40);
+        ctx.lineWidth=Math.max(11,23*(3.2/(3.2-zm))*0.9);
+        ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();});
+
+    Object.keys(S).sort(function(a,b){return S[a].z-S[b].z;}).forEach(function(key){
+      if(key==='hd')return;
+      var p=S[key],r=Math.max(13,25*(3.2/(3.2-p.z))*0.82);
+      ctx.beginPath();ctx.arc(p.x,p.y,r+10,0,Math.PI*2);ctx.fillStyle=depthColor(p.z,dim?0.10:0.18);ctx.fill();
+      ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=depthColor(p.z,dim?0.55:0.97);ctx.fill();
+      ctx.lineWidth=3.5;ctx.strokeStyle='rgba(3,12,15,.6)';ctx.stroke();});
+
+    var hd=S.hd,hr=Math.max(28,47*(3.2/(3.2-hd.z))*0.82);
+    ctx.beginPath();ctx.arc(hd.x,hd.y,hr,0,Math.PI*2);
+    ctx.fillStyle=depthColor(hd.z,dim?0.16:0.30);ctx.fill();
+    ctx.lineWidth=4.5;ctx.strokeStyle=depthColor(hd.z,dim?0.45:0.85);ctx.stroke();
+  }
+
+  /* ---------- rep FSM (blueprint §3.5) ---------- */
+  var TOP=172,BOT=95;
+  var fsm={state:'READY',peak:0,startT:0,full:0,partial:0};
+  var sess={reps:[],violFrames:0,totalFrames:0,cues:0,peakL:[],peakR:[],startedAt:0};
+  function resetSession(){
+    fsm={state:'READY',peak:0,startT:0,full:0,partial:0};
+    sess={reps:[],violFrames:0,totalFrames:0,cues:0,peakL:[],peakR:[],startedAt:performance.now()};
+  }
+  function stepFSM(prog,now){
+    if(fsm.state==='READY'){ if(prog>0.15){fsm.state='DESCENDING';fsm.startT=now;fsm.peak=prog;} return; }
+    var prev=fsm.peak; fsm.peak=Math.max(fsm.peak,prog);
+    var dur=(now-fsm.startT)/1000;
+    if(dur>15){fsm.state='READY';fsm.peak=0;return;}
+    if(fsm.peak>0.85&&prog>0.80) fsm.state='BOTTOM';
+    else if(prog<prev-0.005) fsm.state='ASCENDING';
+    else fsm.state='DESCENDING';
+    if(prog<0.15){
+      if(dur>=0.6&&fsm.peak>=0.85){fsm.full++;sess.reps.push(fsm.peak);cue('good');}
+      else if(dur>=0.6&&fsm.peak>=0.35){fsm.partial++;sess.reps.push(fsm.peak);}
+      fsm.state='READY';fsm.peak=0;
+    }
+  }
+
+  /* ---------- scoring (blueprint §4.2, floor-anchored) ---------- */
+  function scoreSession(){
+    var n=sess.reps.length||1;
+    var romMean=sess.reps.reduce(function(a,b){return a+b;},0)/n;   /* 0..1 of target */
+    var Range=Math.max(0,Math.min(1,(romMean-0.60)/0.40))*100;
+    var pen=sess.totalFrames? sess.violFrames*3/sess.totalFrames : 0;
+    var Control=Math.max(0,Math.min(100,100-250*pen));
+    var asym=valgus?0.14:0.03;
+    var Symmetry=(1-asym)*100;
+    var target=PILLARS[pillar].target;
+    var completion=Math.min(1,fsm.full/target);
+    var third=Math.max(1,Math.floor(n/3));
+    var qF=sess.reps.slice(0,third).reduce(function(a,b){return a+b;},0)/third;
+    var qL=sess.reps.slice(-third).reduce(function(a,b){return a+b;},0)/third;
+    var decay=Math.max(0,(qF-qL)/(qF||1));
+    var Endurance=0.5*completion*100+0.5*(1-decay)*100;
+    var score=0.40*Range+0.25*Control+0.20*Symmetry+0.15*Endurance;
+    return {score:Math.round(score),Range:Math.round(Range),Control:Math.round(Control),
+            Symmetry:Math.round(Symmetry),Endurance:Math.round(Endurance),reps:fsm.full,romMean:romMean};
+  }
+
+  /* ---------- cue ---------- */
+  var cueEl=document.getElementById('sessCue'),cueUntil=0,cueLast=0;
+  var GOOD=['Nice depth — hold that tempo','Even on both sides','Controlled descent — keep it'];
+  function cue(kind){
+    var now=performance.now();
+    if(now-cueLast<2400)return;
+    cueLast=now;cueUntil=now+2100;
+    if(kind==='warn'){cueEl.dataset.sev='warn';cueEl.textContent='Push your knees out over your toes';sess.cues++;}
+    else{cueEl.dataset.sev='good';cueEl.textContent=GOOD[fsm.full%GOOD.length];}
+    cueEl.classList.remove('hide');
+  }
+
+  /* ---------- navigation ---------- */
+  var VIEWS=['hub','checkin','framing','session','rest','report'];
+  var current='hub', setIndex=1, phase=0, tRef=performance.now();
+  function show(id){
+    VIEWS.forEach(function(v){document.getElementById('v-'+v).hidden=(v!==id);});
+    document.querySelectorAll('#rail button').forEach(function(b){
+      b.setAttribute('aria-current', String(b.dataset.go===id));
+    });
+    current=id;
+    if(id==='framing') startFraming();
+    if(id==='session') startSession();
+    if(id==='rest') startRest();
+    if(id==='report') fillReport();
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-go]'); if(!b) return;
+    if(b.id==='ctaNextSet'){ setIndex=Math.min(setIndex+1,PILLARS[pillar].sets); }
+    if(b.dataset.go==='hub'){ setIndex=1; }
+    show(b.dataset.go);
+  });
+
+  /* ---------- check-in ---------- */
+  ['Pain','Stiff','Energy'].forEach(function(k){
+    var s=document.getElementById('s'+k), l=document.getElementById('l'+k);
+    s.addEventListener('input',function(){
+      l.textContent=this.value;
+      if(k==='Pain'){
+        var hi=+this.value>=7;
+        document.getElementById('painAlert').hidden=!hi;
+        document.getElementById('ctaCheckin').textContent=hi?'Continue with the easier version':'Continue';
+      }
+    });
+  });
+
+  /* ---------- framing ---------- */
+  var frameT0=0, frameDone=false;
+  function startFraming(){
+    frameT0=performance.now(); frameDone=false;
+    document.querySelectorAll('#checkList .chk').forEach(function(c){c.classList.remove('ok');});
+    var cta=document.getElementById('ctaFraming');
+    cta.disabled=true; cta.textContent='Checking your setup…';
+  }
+
+  /* ---------- session ---------- */
+  function startSession(){
+    var c=PILLARS[pillar];
+    resetSession(); phase=0; tRef=performance.now();
+    document.getElementById('sessName').textContent=c.name;
+    document.getElementById('sessTarget').textContent='OF '+c.target;
+    document.getElementById('sessSet').textContent='SET '+setIndex+' / '+c.sets;
+    document.getElementById('sessReps').textContent='0';
+    cueEl.classList.add('hide');
+  }
+
+  /* ---------- rest ---------- */
+  var restT0=0;
+  function startRest(){
+    restT0=performance.now();
+    document.getElementById('restReps').textContent=fsm.full;
+    var mean=sess.reps.length? sess.reps.reduce(function(a,b){return a+b;},0)/sess.reps.length : 0;
+    document.getElementById('restDepth').textContent=Math.round(TOP-mean*(TOP-BOT))+'°';
+    document.getElementById('restCues').textContent=sess.cues;
+    var c=PILLARS[pillar];
+    document.getElementById('ctaNextSet').textContent = setIndex>=c.sets? 'Start cooldown' : 'Start set '+(setIndex+1);
+  }
+
+  /* ---------- report ---------- */
+  function fillReport(){
+    var r=scoreSession(), c=PILLARS[pillar];
+    var totalReps=Math.max(r.reps, 1)*c.sets;
+    document.getElementById('repScore').textContent=r.score;
+    document.getElementById('hubScore').textContent=r.score;
+    var pairs=[['Range',r.Range,'bRange','nRange'],['Control',r.Control,'bControl','nControl'],
+               ['Sym',r.Symmetry,'bSym','nSym'],['End',r.Endurance,'bEnd','nEnd']];
+    pairs.forEach(function(p){
+      document.getElementById(p[2]).style.width=p[1]+'%';
+      document.getElementById(p[3]).textContent=p[1];
+      document.getElementById(p[2]).style.background = p[1]<75? 'var(--warn)' : 'var(--accent)';
+    });
+    var mins=Math.max(1,Math.round((performance.now()-sess.startedAt)/60000)+c.sets*2);
+    document.getElementById('repMeta').textContent=c.label+' · '+mins+' min · '+totalReps+' reps';
+    document.getElementById('repCount').textContent=totalReps+' reps';
+    document.getElementById('repComfort').textContent=
+      Math.round(100-((+document.getElementById('sPain').value*6)+(+document.getElementById('sStiff').value*3)));
+    var delta=r.score-74;
+    var d=document.getElementById('repDelta');
+    d.textContent=(delta>=0?'▲ ':'▼ ')+Math.abs(delta)+' vs last';
+    d.style.background=delta>=0?'var(--good-soft)':'var(--warn-soft)';
+    d.style.color=delta>=0?'var(--good)':'var(--warn)';
+    document.getElementById('repHeadline').textContent = valgus
+      ? 'Your knees collapsed inward on most reps today.'
+      : (r.Range>=80? 'Your depth held all the way to the last set — that’s new.'
+                    : 'Solid session — depth is the thing to chase next.');
+    document.getElementById('repBody').textContent = valgus
+      ? 'Control took the hit: the knee-tracking rule fired across the majority of your reps, which is what pulled the score down. It is the single highest-leverage fix in your program right now.'
+      : 'Endurance is the sub-score that usually slips first, and yours held steady between the opening and closing thirds.';
+    document.getElementById('repIssue').textContent = valgus
+      ? Math.round(totalReps*0.72)+' of '+totalReps+' · new'
+      : Math.round(totalReps*0.19)+' of '+totalReps+' · improving';
+  }
+
+  /* ---------- controls ---------- */
+  document.getElementById('segPillar').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b)return;
+    pillar=b.dataset.p;
+    this.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+    setIndex=1;
+    if(current==='session') startSession();
+  });
+  document.getElementById('yaw').addEventListener('input',function(){
+    yaw=+this.value; document.getElementById('yawV').textContent=yaw+'°';
+  });
+  document.getElementById('speed').addEventListener('input',function(){
+    speed=+this.value/100; document.getElementById('speedV').textContent=speed.toFixed(1)+'×';
+  });
+  document.getElementById('togValgus').addEventListener('click',function(){
+    valgus=!valgus; this.setAttribute('aria-pressed',String(valgus));
+  });
+  document.getElementById('togBeams').addEventListener('click',function(){
+    beamsInSession=!beamsInSession; this.setAttribute('aria-pressed',String(beamsInSession));
+  });
+
+  /* ---------- refs ---------- */
+  var cvFrame=document.getElementById('cvFrame'), cvSess=document.getElementById('cvSess');
+  var tKnee=document.getElementById('tKnee'),tProg=document.getElementById('tProg'),
+      tState=document.getElementById('tState'),tReps=document.getElementById('tReps'),
+      sessRom=document.getElementById('sessRom'),sessReps=document.getElementById('sessReps'),
+      sessTime=document.getElementById('sessTime'),frameQual=document.getElementById('frameQual'),
+      restNum=document.getElementById('restNum'),restArc=document.getElementById('restArc');
+
+  /* ---------- loop ---------- */
+  function tick(now){
+    var c=PILLARS[pillar];
+    var per=c.period/speed;
+    if(!reduce || current==='session') phase=((now-tRef)%per)/per;
+
+    var raw;
+    if(phase<0.42) raw=phase/0.42;
+    else if(phase<0.54) raw=1;
+    else if(phase<0.90) raw=1-(phase-0.54)/0.36;
+    else raw=0;
+    raw=(1-Math.cos(Math.PI*raw))/2;
+    var depth=raw*c.depth;
+    var P=pose(depth,valgus);
+
+    var knee=jointAngle(P.Lhp,P.Lkn,P.Lan);
+    var prog=Math.max(0,Math.min(1,(TOP-knee)/(TOP-BOT)));
+
+    if(current==='framing'){
+      render(cvFrame,pose(0.05,false),true,true);   /* beams always on during setup */
+      var el=(now-frameT0)/1000;
+      var checks=document.querySelectorAll('#checkList .chk');
+      for(var i=0;i<3;i++) if(el>0.7+i*0.6) checks[i].classList.add('ok');
+      frameQual.textContent='TRACKING '+Math.min(0.96,el*0.5).toFixed(2);
+      if(el>2.6&&!frameDone){
+        frameDone=true;
+        var cta=document.getElementById('ctaFraming');
+        cta.disabled=false; cta.textContent='Start set '+setIndex;
+      }
+    }
+
+    if(current==='session'){
+      render(cvSess,P,false,beamsInSession);
+      stepFSM(prog,now);
+      sess.totalFrames++;
+      if(valgus&&depth>0.45){ sess.violFrames++; if(depth>0.7) cue('warn'); }
+      sessRom.style.width=(prog*100).toFixed(1)+'%';
+      document.getElementById('sessPct').textContent=Math.round(prog*100)+'%';
+      sessReps.textContent=fsm.full;
+      var secs=Math.floor((now-sess.startedAt)/1000);
+      sessTime.textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+      if(now>cueUntil) cueEl.classList.add('hide');
+      if(fsm.full>=c.target){ show('rest'); }
+    }
+
+    if(current==='rest'){
+      var left=Math.max(0,45-(now-restT0)/1000);
+      restNum.textContent=Math.ceil(left);
+      restArc.setAttribute('stroke-dashoffset',(477.5*(1-left/45)).toFixed(1));
+    }
+
+    tKnee.textContent=knee.toFixed(0)+'°';
+    tProg.textContent=prog.toFixed(2);
+    tState.textContent=fsm.state;
+    tReps.textContent=fsm.full+' / '+fsm.partial;
+
+    requestAnimationFrame(tick);
+  }
+  render(cvFrame,pose(0.05,false),true,true);
+  render(cvSess,pose(0.55,false),false,beamsInSession);
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>
