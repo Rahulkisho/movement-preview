@@ -89,9 +89,15 @@ body.fslock{overflow:hidden}
 .otop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:rgba(5,17,21,.72);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(4px)}
 .tag.on{color:#7EE0EE;border-color:#1C5B6B}
-.repbox{text-align:right}
-.repbox b{display:block;font-family:var(--font-mono);font-size:44px;font-weight:600;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6)}
-.repbox i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:#9FC4CE;letter-spacing:.08em}
+/* White-on-camera is unreadable against a bright wall, which is exactly what most
+   people have behind them. The counter gets its own dark chip so it never depends
+   on what the room happens to look like. */
+.repbox{text-align:center;background:rgba(5,17,21,.78);border:1px solid var(--inst-line);
+  border-radius:14px;padding:8px 14px 7px;backdrop-filter:blur(6px)}
+.repbox b{display:block;font-family:var(--font-mono);font-size:40px;font-weight:600;
+  color:#7EE0EE;line-height:1;font-variant-numeric:tabular-nums}
+.repbox i{font-style:normal;font-family:var(--font-mono);font-size:10px;color:var(--inst-muted);
+  letter-spacing:.1em;display:block;margin-top:3px}
 .cuebar{align-self:center;max-width:90%;font-size:15px;font-weight:500;text-align:center;padding:12px 18px;border-radius:12px;background:rgba(5,17,21,.85);border:1px solid var(--inst-line);color:var(--inst-ink);backdrop-filter:blur(5px);transition:opacity .2s,transform .2s}
 .cuebar[data-sev="warn"]{border-color:#7A5A1B;color:#F3C877;background:rgba(38,27,6,.9)}
 .cuebar[data-sev="good"]{border-color:#1D5C42;color:#84DDB4;background:rgba(6,29,21,.9)}
@@ -108,7 +114,7 @@ body.fslock{overflow:hidden}
 .romtrack i{display:block;height:100%;width:0%;border-radius:10px;
   background:linear-gradient(90deg,#7666E8 0%,#2CC0D4 58%,#8FEAF7 100%);
   box-shadow:0 0 22px rgba(44,192,212,.6), inset 0 1px 0 rgba(255,255,255,.35);
-  transition:width .06s linear}
+  transition:width .13s cubic-bezier(.22,.61,.36,1)}
 .romtrack .tick{position:absolute;top:0;bottom:0;width:2px;background:rgba(205,229,234,.38)}
 .romtrack .tick.full{background:rgba(132,221,180,.8);box-shadow:0 0 8px rgba(132,221,180,.5)}
 .romfoot{display:flex;justify-content:space-between;align-items:baseline;margin-top:7px;
@@ -282,20 +288,20 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
           <label for="exSel">Movement</label>
           <select id="exSel">
             <optgroup label="Lower body">
-              <option value="squat"     data-view="Face the camera">Bodyweight squat</option>
-              <option value="sitstand"  data-view="Face the camera">Sit-to-stand</option>
-              <option value="lunge"     data-view="Turn side-on">Reverse lunge</option>
-              <option value="bridge"    data-view="Lie side-on to the camera">Glute bridge</option>
-              <option value="kneeraise" data-view="Turn side-on">Standing knee raise</option>
+              <option value="squat"     data-view="Stand 6–8 ft back, feet shoulder-width, whole body in frame">Bodyweight squat</option>
+              <option value="sitstand"  data-view="Chair behind you, 6–8 ft from the camera. Stand without pushing off your hands">Sit-to-stand</option>
+              <option value="lunge"     data-view="Turn about 45° to the camera — square-on hides the back leg behind the front one">Reverse lunge</option>
+              <option value="bridge"    data-view="Lie with your side to the camera, phone flat on the floor 5–6 ft away">Glute bridge</option>
+              <option value="kneeraise" data-view="Turn about 45° — it keeps both the raised knee and the standing leg visible">Standing knee raise</option>
             </optgroup>
             <optgroup label="Upper body">
-              <option value="pushup" data-view="Turn side-on">Push-up</option>
-              <option value="curl"   data-view="Face the camera">Bicep curl</option>
-              <option value="press"  data-view="Face the camera">Overhead press</option>
-              <option value="raise"  data-view="Face the camera">Lateral raise</option>
+              <option value="pushup" data-view="Phone flat on the floor 5–6 ft to your side, propped against something">Push-up</option>
+              <option value="curl"   data-view="Stand 5–6 ft back with your whole torso and both arms in frame">Bicep curl</option>
+              <option value="press"  data-view="Step back far enough that your hands stay in frame at full lockout">Overhead press</option>
+              <option value="raise"  data-view="6–8 ft back — at the top your arms span almost your own height">Lateral raise</option>
             </optgroup>
             <optgroup label="Full body">
-              <option value="jack" data-view="Face the camera">Jumping jack</option>
+              <option value="jack" data-view="Stand 8 ft back — arms and legs both travel wide, give yourself room">Jumping jack</option>
             </optgroup>
           </select>
           <small id="exHint" style="display:block;font-size:11px;color:var(--ink-faint);margin-top:5px">Face the camera · knee flexion 170° → 95°</small>
@@ -321,8 +327,8 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
       </div>
 
       <div class="pcard" id="refCard">
-        <h3>Target position</h3>
-        <p id="refCap">This is the peak of the rep — the position the depth meter is measuring toward.</p>
+        <h3>Target position &amp; setup</h3>
+        <p id="refCap">The photo is the peak of the rep — what the depth meter is measuring toward.</p>
         <div class="refwrap"><img id="refImg" alt="" ></div>
         <p class="note" id="refNote"></p>
       </div>
@@ -348,9 +354,9 @@ select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line
         <div class="field">
           <label for="beamSel">Tracking beams</label>
           <select id="beamSel">
-            <option value="off">Off</option>
+            <option value="off" selected>Off</option>
             <option value="setup">Setup only — retire after first rep</option>
-            <option value="always" selected>Always on</option>
+            <option value="always">Always on</option>
           </select>
         </div>
         <div class="field">
@@ -627,36 +633,50 @@ const DRAW_PTS=[0,11,12,13,14,15,16,23,24,25,26,27,28,31,32];
    `unilateral: true` means one limb works at a time — progress takes whichever
    side is working, and Symmetry is dropped from the score rather than punishing
    a movement that is asymmetric by design. */
+/* EVERY entry's `need` list must include shoulders (11,12) AND hips (23,24),
+   whatever joint it measures: the body-frame transform is built from those four
+   points, so if they aren't gated on, the frame is computed from landmarks the
+   model may not actually be able to see. */
 const EX = {
-  squat:     {name:'BODYWEIGHT SQUAT',     metricLabel:'Knee flexion',       metric:'knee',  top:170, bottom:95,
+  squat:     {name:'BODYWEIGHT SQUAT',     metricLabel:'Knee flexion',       metric:'knee',  top:172, bottom:92,
               need:[11,12,23,24,25,26,27,28], valgusCheck:true,  view:'Face the camera',
+              setup:'Stand 6–8 ft back, feet shoulder-width, whole body in frame.',
               cue:'Push your knees out over your toes'},
-  sitstand:  {name:'SIT-TO-STAND',         metricLabel:'Knee flexion',       metric:'knee',  top:168, bottom:100,
+  sitstand:  {name:'SIT-TO-STAND',         metricLabel:'Knee flexion',       metric:'knee',  top:170, bottom:95,
               need:[11,12,23,24,25,26,27,28], valgusCheck:true,  view:'Face the camera',
+              setup:'Chair behind you, 6–8 ft from the camera. Stand without pushing off your hands.',
               cue:'Drive through your heels, chest up'},
-  lunge:     {name:'REVERSE LUNGE',        metricLabel:'Front knee flexion', metric:'knee',  top:170, bottom:95,
-              need:[23,24,25,26,27,28],       unilateral:true,   view:'Turn side-on',
-              cue:'Keep your front knee over your ankle'},
-  pushup:    {name:'PUSH-UP',              metricLabel:'Elbow flexion',      metric:'elbow', top:162, bottom:95,
-              need:[11,12,13,14,15,16,23,24], view:'Turn side-on',
-              cue:'Keep your hips in line with your shoulders'},
-  curl:      {name:'BICEP CURL',           metricLabel:'Elbow flexion',      metric:'elbow', top:165, bottom:50,
-              need:[11,12,13,14,15,16],       view:'Face the camera',
-              cue:'Keep your elbows tucked in at your sides'},
-  press:     {name:'OVERHEAD PRESS',       metricLabel:'Elbow extension',    metric:'elbow', top:85,  bottom:168,
-              need:[11,12,13,14,15,16],       view:'Face the camera',
+  lunge:     {name:'REVERSE LUNGE',        metricLabel:'Front knee flexion', metric:'knee',  top:172, bottom:95,
+              need:[11,12,23,24,25,26,27,28], unilateral:true,   view:'Turn about 45° to the camera',
+              setup:'45°, not full side-on — square to your side, the back leg hides behind the front one.',
+              cue:'Keep your front knee stacked over your ankle'},
+  pushup:    {name:'PUSH-UP',              metricLabel:'Elbow flexion',      metric:'elbow', top:165, bottom:95,
+              need:[11,12,13,14,15,16,23,24], view:'Side-on, phone on the floor',
+              setup:'Phone flat on the floor 5–6 ft to your side, propped up against something.',
+              cue:'Hips in line with your shoulders — no sagging'},
+  curl:      {name:'BICEP CURL',           metricLabel:'Elbow flexion',      metric:'elbow', top:168, bottom:48,
+              need:[11,12,13,14,15,16,23,24], view:'Face the camera',
+              setup:'Stand 5–6 ft back with your whole torso and both arms in frame.',
+              cue:'Elbows pinned to your sides — no swinging'},
+  press:     {name:'OVERHEAD PRESS',       metricLabel:'Elbow extension',    metric:'elbow', top:80,  bottom:170,
+              need:[11,12,13,14,15,16,23,24], view:'Face the camera',
+              setup:'Step back far enough that your hands stay in frame at full lockout.',
               cue:'Press straight up — keep your ribs down'},
-  raise:     {name:'LATERAL RAISE',        metricLabel:'Shoulder abduction', metric:'abd',   top:20,  bottom:85,
+  raise:     {name:'LATERAL RAISE',        metricLabel:'Shoulder abduction', metric:'abd',   top:18,  bottom:85,
               need:[11,12,13,14,23,24],       view:'Face the camera',
+              setup:'6–8 ft back — at the top your arms span almost your own height.',
               cue:'Lead with your elbows, not your hands'},
   jack:      {name:'JUMPING JACK',         metricLabel:'Shoulder abduction', metric:'abd',   top:20,  bottom:150,
-              need:[11,12,13,14,23,24],       view:'Face the camera',
+              need:[11,12,13,14,23,24],       minRepMs:320,      view:'Face the camera',
+              setup:'Stand 8 ft back — arms and legs both travel wide, give yourself room.',
               cue:'All the way up — hands above your head'},
-  bridge:    {name:'GLUTE BRIDGE',         metricLabel:'Hip extension',      metric:'hip',   top:105, bottom:165,
-              need:[11,12,23,24,25,26],       view:'Lie side-on to the camera',
-              cue:'Squeeze your glutes at the top'},
-  kneeraise: {name:'STANDING KNEE RAISE',  metricLabel:'Hip flexion',        metric:'hip',   top:172, bottom:100,
-              need:[11,12,23,24,25,26],       unilateral:true,   view:'Turn side-on',
+  bridge:    {name:'GLUTE BRIDGE',         metricLabel:'Hip extension',      metric:'hip',   top:125, bottom:172,
+              need:[11,12,23,24,25,26],       view:'Side-on, phone on the floor',
+              setup:'Lie with your side to the camera, phone on the floor 5–6 ft away.',
+              cue:'Squeeze your glutes — drive the hips to a straight line'},
+  kneeraise: {name:'STANDING KNEE RAISE',  metricLabel:'Hip flexion',        metric:'hip',   top:174, bottom:95,
+              need:[11,12,23,24,25,26],       unilateral:true,   view:'Turn about 45° to the camera',
+              setup:'45° keeps both the raised knee and the standing leg visible.',
               cue:'Stand tall — don’t lean back as you lift'}
 };
 let exKey = 'squat';
@@ -684,11 +704,14 @@ function stepFSM(prog,now,mL,mR){
   if(fsm.peak>0.85 && prog>0.80) fsm.state='BOTTOM';
   else if(prog<prev-0.004)       fsm.state='ASCENDING';
   else                           fsm.state='DESCENDING';
+  /* A jumping jack cycle can finish inside 500 ms, so a fixed 600 ms floor would
+     silently reject every rep at a brisk pace. Per-exercise, defaulting to 600. */
+  const minRep=(ex.minRepMs||600)/1000;
   if(prog<0.15){
-    if(dur>=0.6 && fsm.peak>=0.85){
+    if(dur>=minRep && fsm.peak>=0.85){
       fsm.full++; sess.reps.push(fsm.peak); sess.peakL.push(repPeakL); sess.peakR.push(repPeakR);
       cue('good'); if(navigator.vibrate) navigator.vibrate(30);
-    } else if(dur>=0.6 && fsm.peak>=0.35){
+    } else if(dur>=minRep && fsm.peak>=0.35){
       fsm.partial++; sess.reps.push(fsm.peak);
     }
     fsm.state='READY'; fsm.peak=0;
@@ -774,7 +797,7 @@ const fade = v => Math.max(0,Math.min(1,(v-0.20)/0.30));
    reads cyan and a far one violet; the effect carries information rather than
    just decorating. Drawn under the skeleton, additively, so joints stay on top. */
 const BEAM_PTS=[0,11,12,13,14,15,16,23,24,25,26,27,28];
-let beamMode='always', beamIntensity=0.85;
+let beamMode='off', beamIntensity=0.85;
 
 function drawBeams(P, Z, vis, k){
   if(k<=0.01) return;
@@ -1071,6 +1094,7 @@ function analyse(W, vis, now, dt){
    drawing run on every animation frame (~60 fps), converging toward the latest
    detection — that is what removes the stepping between inferences. */
 let latest=null, lastInferT=0, infFps=0, beamK=0, beamMs=0;
+let dispProg=0, lastPct=-1;
 
 function loop(){
   if(!running) return;
@@ -1132,8 +1156,19 @@ function loop(){
       if(out){
         $('tAngle').textContent=out.m.toFixed(0)+'°';
         $('tProg').textContent=out.prog.toFixed(2);
-        $('romBar').style.width=(out.prog*100).toFixed(1)+'%';
-        $('romPct').textContent=Math.round(out.prog*100)+'%';
+
+        /* Display-only damping. The meter was being driven straight off the raw
+           per-frame progress, so it twitched constantly even when someone was
+           holding still — the eye reads that as the app being unsure. A slower
+           follow plus 1% quantisation makes it settle, and because it is applied
+           after the FSM it cannot affect rep detection or scoring. */
+        dispProg += (out.prog - dispProg) * Math.min(1, dt*7);
+        const pct = Math.round(dispProg*100);
+        if(pct !== lastPct){
+          lastPct = pct;
+          $('romBar').style.width = pct + '%';
+          $('romPct').textContent = pct + '%';
+        }
       }
     }
   } else {
@@ -1209,8 +1244,8 @@ function showPoseInset(ms){
 function applyExercise(){
   $('exName').textContent=ex.name;
   $('uMetric').textContent=ex.metricLabel;
-  $('exHint').textContent=ex.view+' · '+ex.metricLabel.toLowerCase()+' '+ex.top+'° → '+ex.bottom+'°'
-                          +(ex.unilateral?' · one side at a time':'');
+  $('exHint').textContent=ex.metricLabel.toLowerCase()+' '+ex.top+'° → '+ex.bottom+'°'
+                          +(ex.unilateral?' · scored on the working side':'');
   $('poseBtn').hidden = !POSES[exKey] || !running;
   if(!POSES[exKey]) $('poseInset').classList.add('hide');
 }
@@ -1218,7 +1253,7 @@ $('exSel').addEventListener('change',function(){
   exKey=this.value; ex=EX[exKey];
   applyExercise();
   resetSession();
-  cue('setup',ex.name.charAt(0)+ex.name.slice(1).toLowerCase()+' — '+ex.view.toLowerCase());
+  cue('setup',ex.setup);
   if(running) showPoseInset(6000);      /* remind, then get out of the way */
 });
 $('poseBtn').addEventListener('click',function(){

@@ -494,8 +494,8 @@ header.top{border-bottom:1px solid var(--line);background:var(--surface)}
       </div>
 
       <div class="field">
-        <button class="tog on" type="button" id="togBeams" aria-pressed="true"><span class="sw"></span>Tracking beams in session</button>
-        <p class="note" style="margin-top:7px">Always on during <b>Framing</b>. This toggle is the user setting for the live set.</p>
+        <button class="tog on" type="button" id="togBeams" aria-pressed="false"><span class="sw"></span>Tracking beams in session</button>
+        <p class="note" style="margin-top:7px">Always on during <b>Framing</b> — that screen's job is "the camera has found you". Off during the live set, where they'd compete with your own form.</p>
       </div>
     </div>
 
@@ -539,9 +539,9 @@ header.top{border-bottom:1px solid var(--line);background:var(--surface)}
   };
   var pillar='workout', yaw=12, valgus=false, speed=1.0;
   /* Tracking beams are always on during setup — that screen's whole job is
-     "the camera has found you". In the live set they stay on by preference,
-     exposed as a user setting so it can be turned off. */
-  var beamsInSession=true;
+     "the camera has found you". In the live set they ship off — during a set the
+     user should be watching their own form, not an effect. */
+  var beamsInSession=false;
 
   function pose(p,vg){
     function L(a,b){return a+(b-a)*p;}
