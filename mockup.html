@@ -381,9 +381,9 @@ header.top{border-bottom:1px solid var(--line);background:var(--surface)}
                 <div class="romtrack">
                   <i id="sessRom"></i>
                   <span class="tick" style="left:15%"></span>
-                  <span class="tick full" style="left:85%"></span>
+                  <span class="tick full" style="left:75%"></span>
                 </div>
-                <div class="romfoot"><span>REP COUNTS</span><b id="sessPct">0%</b><span>FULL DEPTH</span></div>
+                <div class="romfoot"><span>REP COUNTS</span><b id="sessPct">0%</b><span>FULL AT 75%</span></div>
               </div>
             </div>
           </div>
@@ -643,6 +643,10 @@ header.top{border-bottom:1px solid var(--line);background:var(--surface)}
 
   /* ---------- rep FSM (blueprint §3.5) ---------- */
   var TOP=172,BOT=95;
+  /* Depth a rep must reach to count as full rather than partial. See the demo's
+     FSM comment — lowered from 0.85 so honest reps stop landing in the partial
+     bucket. Range still scores each rep on its actual measured depth. */
+  var FULL_REP=0.75;
   var fsm={state:'READY',peak:0,startT:0,full:0,partial:0};
   var sess={reps:[],violFrames:0,totalFrames:0,cues:0,peakL:[],peakR:[],startedAt:0};
   function resetSession(){
@@ -654,11 +658,11 @@ header.top{border-bottom:1px solid var(--line);background:var(--surface)}
     var prev=fsm.peak; fsm.peak=Math.max(fsm.peak,prog);
     var dur=(now-fsm.startT)/1000;
     if(dur>15){fsm.state='READY';fsm.peak=0;return;}
-    if(fsm.peak>0.85&&prog>0.80) fsm.state='BOTTOM';
+    if(fsm.peak>FULL_REP&&prog>FULL_REP*0.94) fsm.state='BOTTOM';
     else if(prog<prev-0.005) fsm.state='ASCENDING';
     else fsm.state='DESCENDING';
     if(prog<0.15){
-      if(dur>=0.6&&fsm.peak>=0.85){fsm.full++;sess.reps.push(fsm.peak);cue('good');}
+      if(dur>=0.6&&fsm.peak>=FULL_REP){fsm.full++;sess.reps.push(fsm.peak);cue('good');}
       else if(dur>=0.6&&fsm.peak>=0.35){fsm.partial++;sess.reps.push(fsm.peak);}
       fsm.state='READY';fsm.peak=0;
     }
